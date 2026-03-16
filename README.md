@@ -14,14 +14,25 @@
 - **競技性の向上**: 世界中の開発者が集まり、アルゴリズムを比較・共有できるプラットフォームの提供。
 - **アクセスのしやすさ**: DBレス構成による運用コストゼロと、完全なオフライン動作（PWA）の実現。
 
-### 3. 主要機能
-- **迷路生成**: 公式仕様（16x16, 2x2ゴール）に基づいたシード固定迷路の生成。
-- **アルゴリズム比較**: 複数アルゴリズムの同時実行とコスト評価。
-- **ゲーミフィケーション**: ゴースト対戦、段位認定キャンペーン。
-- **サンドボックス**: Monaco Editorによるブラウザ上での安全なコード実行環境。
-- **多言語対応**: 日本語と英語を完全にサポート。
+### 3. ゲーム内容 / Game Features
 
-### 4. 技術スタック
+#### [日本語]
+本プロジェクトは単なるシミュレータではなく、以下のゲーミフィケーション要素を備えた体験型プラットフォームです。
+- **ゴースト対戦**: 他のユーザーの走行履歴（URL共有）とリアルタイムで並走し、タイムを競うことができます。
+- **視界制限サバイバル**: 周囲1マス以外が暗闇の迷路を、キーボード操作で手動攻略する人間 vs アルゴリズムの対戦モード。
+- **段位認定キャンペーン**: 用意されたステージを順にクリアし、初心者から達人までランクアップする成長要素。
+- **3D探索**: マイクロマウスの視点（FPS）で迷路内を自由に移動できる臨場感あふれるモード。
+- **ウィンク・ドライブ**: AI顔認識を利用し、ウィンクで曲がる等の特殊な操作方法を提供（配信者向け）。
+
+#### [English]
+This project is more than a simulator; it is an interactive platform with gamified elements:
+- **Ghost Competition**: Compete in real-time against other users' recorded runs shared via URL.
+- **Survival Mode**: A human vs. algorithm challenge where you manually navigate a dark maze with only 1-cell visibility.
+- **Rank Certification**: Progress through curated stages and rank up from Beginner to Grandmaster.
+- **3D Exploration**: An immersive First-Person Perspective (FPP) mode to navigate through the maze as if you were the mouse.
+- **Wink Drive**: Special AI-powered facial recognition control (e.g., turning by winking), optimized for streamers and VTubers.
+
+### 5. 技術スタック / Tech Stack
 - **Frontend**: React (Next.js / Vite), TypeScript
 - **Rendering**: HTML5 Canvas (2D), React Three Fiber (3D)
 - **State**: Zustand
