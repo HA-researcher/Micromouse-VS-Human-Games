@@ -3,7 +3,8 @@ import './App.css';
 import { generateMaze } from './utils/mazeGenerator';
 import MazeRenderer from './components/MazeRenderer';
 import { useSimulation } from './hooks/useSimulation';
-import { translations, Language } from './i18n/translations';
+import { translations } from './i18n/translations';
+import type { Language } from './i18n/translations';
 import type { MazeState } from './types/maze';
 import { DEFAULT_MAZE_SIZE } from './utils/constants';
 
