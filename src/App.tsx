@@ -18,14 +18,14 @@ function App() {
   
   const t = translations[lang];
 
+  const { 
+    isPlaying, speed, setSpeed, step, togglePlay, reset, stepForward, stepBackward 
+  } = useSimulation(undefined, 1);
+
   const handleReset = useCallback(() => {
     reset();
     setMouse(SimulatorEngine.getInitialState());
   }, [reset]);
-
-  const { 
-    isPlaying, speed, setSpeed, step, togglePlay, reset, stepForward, stepBackward 
-  } = useSimulation(undefined, 1);
 
   const handleGenerate = useCallback(() => {
     const newSeed = Math.floor(Math.random() * 10000);
