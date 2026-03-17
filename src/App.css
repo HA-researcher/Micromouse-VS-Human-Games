@@ -23,6 +23,22 @@
   border: 1px solid #333;
 }
 
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 2rem;
+}
+
+.lang-toggle {
+  background: transparent;
+  border: 1px solid #444;
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
 .controls {
   margin-top: 24px;
   display: flex;
@@ -33,6 +49,8 @@
   padding: 24px;
   border-radius: 12px;
   border: 1px solid #444;
+  max-width: 600px;
+  width: 100%;
 }
 
 .simulation-info {
@@ -63,7 +81,9 @@
 
 .button-group {
   display: flex;
-  gap: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 button {
@@ -80,10 +100,12 @@ button {
 .btn-primary {
   background-color: #4CAF50;
   box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+  min-width: 100px;
 }
 
 .btn-secondary {
-  background-color: #666;
+  background-color: #444;
+  padding: 10px 15px;
 }
 
 .btn-outline {
@@ -119,10 +141,16 @@ button:hover {
   font-size: 12px;
 }
 
+.app-footer {
+  margin-top: 3rem;
+  color: #666;
+  font-size: 14px;
+}
+
 h1 {
   background: linear-gradient(135deg, #fff 0%, #aaa 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  margin-bottom: 1.5rem;
+  margin: 0;
 }
