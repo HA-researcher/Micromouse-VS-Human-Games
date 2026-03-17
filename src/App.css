@@ -141,6 +141,15 @@ button:hover {
   font-size: 12px;
 }
 
+.manual-hint {
+  color: #888;
+  font-size: 14px;
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid #333;
+}
+
 .app-footer {
   margin-top: 3rem;
   color: #666;
