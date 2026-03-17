@@ -1,13 +1,15 @@
 import React, { useEffect, useRef } from 'react';
 import type { MazeState } from '../types/maze';
 import { Direction } from '../types/maze';
+import type { MouseState } from '../types/simulator';
 
 interface MazeRendererProps {
   maze: MazeState;
+  mouse?: MouseState;
   cellSize?: number;
 }
 
-const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, cellSize = 30 }) => {
+const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, cellSize = 30 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const drawMaze = (ctx: CanvasRenderingContext2D) => {
@@ -83,6 +85,43 @@ const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, cellSize = 30 }) => {
       }
     }
 
+    // Draw Mouse
+    if (mouse) {
+      const mx = (mouse.x + 0.5) * cellSize;
+      const my = (mouse.y + 0.5) * cellSize;
+      const size = cellSize * 0.4;
+
+      ctx.save();
+      ctx.translate(mx, my);
+      
+      // Rotate based on direction
+      // Default (North) index 0
+      const rotationMap = {
+        [Direction.North]: 0,
+        [Direction.East]: Math.PI / 2,
+        [Direction.South]: Math.PI,
+        [Direction.West]: -Math.PI / 2
+      };
+      ctx.rotate(rotationMap[mouse.direction]);
+
+      // Mouse Shape (Triangle)
+      ctx.fillStyle = '#FF5252';
+      ctx.beginPath();
+      ctx.moveTo(0, -size);    // Tip
+      ctx.lineTo(-size * 0.8, size * 0.8); // Back left
+      ctx.lineTo(size * 0.8, size * 0.8);  // Back right
+      ctx.closePath();
+      ctx.fill();
+
+      // Mouse Eye (Direction hint)
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(0, -size * 0.3, size * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
     // Mark Start (0,0)
     ctx.fillStyle = '#4CAF50';
     ctx.font = 'bold 14px Inter, sans-serif';
@@ -103,7 +142,7 @@ const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, cellSize = 30 }) => {
         drawMaze(ctx);
       }
     }
-  }, [maze, cellSize]);
+  }, [maze, mouse, cellSize]);
 
   return (
     <div className="maze-renderer-container">

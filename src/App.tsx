@@ -5,6 +5,8 @@ import MazeRenderer from './components/MazeRenderer';
 import { useSimulation } from './hooks/useSimulation';
 import { translations } from './i18n/translations';
 import type { Language } from './i18n/translations';
+import { SimulatorEngine } from './utils/simulatorEngine';
+import type { MouseState } from './types/simulator';
 import type { MazeState } from './types/maze';
 import { DEFAULT_MAZE_SIZE } from './utils/constants';
 
@@ -12,6 +14,7 @@ function App() {
   const [maze, setMaze] = useState<MazeState | null>(null);
   const [seed, setSeed] = useState(42);
   const [lang, setLang] = useState<Language>('ja');
+  const [mouse, setMouse] = useState<MouseState>(SimulatorEngine.getInitialState());
   
   const t = translations[lang];
 
@@ -19,16 +22,52 @@ function App() {
     isPlaying, speed, setSpeed, step, togglePlay, reset, stepForward, stepBackward 
   } = useSimulation(undefined, 1);
 
+  const handleReset = useCallback(() => {
+    reset();
+    setMouse(SimulatorEngine.getInitialState());
+  }, [reset]);
+
   const handleGenerate = useCallback(() => {
     const newSeed = Math.floor(Math.random() * 10000);
     setSeed(newSeed);
-    reset();
-  }, [reset]);
+    handleReset();
+  }, [handleReset]);
 
   useEffect(() => {
     const newMaze = generateMaze(DEFAULT_MAZE_SIZE, DEFAULT_MAZE_SIZE, seed);
     setMaze(newMaze);
   }, [seed]);
+
+  // Manual drive keyboard support (F-10 foundation)
+  useEffect(() => {
+    if (!maze) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent scrolling with arrow keys
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+      }
+
+      switch (e.key) {
+        case 'ArrowUp':
+          setMouse(prev => SimulatorEngine.moveForward(prev, maze));
+          break;
+        case 'ArrowLeft':
+          setMouse(prev => SimulatorEngine.turnLeft(prev));
+          break;
+        case 'ArrowRight':
+          setMouse(prev => SimulatorEngine.turnRight(prev));
+          break;
+        case 'ArrowDown':
+          // U-Turn logic (Turn Right twice)
+          setMouse(prev => SimulatorEngine.turnRight(SimulatorEngine.turnRight(prev)));
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [maze]);
 
   const toggleLang = () => setLang(l => l === 'en' ? 'ja' : 'en');
 
@@ -41,7 +80,7 @@ function App() {
         </button>
       </header>
       
-      {maze && <MazeRenderer maze={maze} />}
+      {maze && <MazeRenderer maze={maze} mouse={mouse} />}
       
       <div className="controls">
         <div className="simulation-info">
@@ -53,12 +92,16 @@ function App() {
 
         <div className="button-group">
           <button onClick={stepBackward} className="btn-secondary" title={t.stepBackward}>⏮</button>
-          <button onClick={togglePlay} className="btn-primary">
-            {isPlaying ? t.pause : t.play}
+          <button onClick={togglePlay} className="btn-primary" disabled>
+            {isPlaying ? t.pause : t.play} (Under Dev)
           </button>
-          <button onClick={stepForward} className="btn-secondary" title={t.stepForward}>⏭</button>
-          <button onClick={reset} className="btn-outline">{t.reset}</button>
+          <button onClick={stepForward} className="btn-secondary" title={t.stepForward} disabled>⏭</button>
+          <button onClick={handleReset} className="btn-outline">{t.reset}</button>
           <button onClick={handleGenerate} className="btn-outline">{t.generateMaze}</button>
+        </div>
+
+        <div className="manual-hint">
+          ⌨️ {lang === 'ja' ? '矢印キーで自由に機体を操作可能' : 'Playable with Arrow Keys'}
         </div>
 
         <div className="speed-control">
