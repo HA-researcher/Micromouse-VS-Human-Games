@@ -2,12 +2,15 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 /**
  * Custom hook to manage the simulation playback loop.
+ * @param onStep Optional callback called on every step (e.g., for direct canvas updates).
  * @param initialSpeed Initial ticks per second (base speed).
  */
-export const useSimulation = (initialSpeed = 1) => {
+export const useSimulation = (onStep?: (step: number) => void, initialSpeed = 1) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(initialSpeed);
-  const [step, setStep] = useState(0);
+  // Requirement 5.6: Animation step_index held in useRef to avoid React re-renders.
+  const stepRef = useRef<number>(0);
+  const [uiStep, setUiStep] = useState(0); // For low-frequency UI updates if needed
   
   const lastTickTime = useRef<number>(0);
   const requestRef = useRef<number | undefined>(undefined);
@@ -17,17 +20,17 @@ export const useSimulation = (initialSpeed = 1) => {
       lastTickTime.current = time;
     }
 
-    // Interval between steps in milliseconds.
-    // Speed is the multiplier for "1 step per second".
     const interval = 1000 / speed;
 
     if (time - lastTickTime.current >= interval) {
-      setStep((prev) => prev + 1);
+      stepRef.current += 1;
+      setUiStep(stepRef.current);
+      if (onStep) onStep(stepRef.current);
       lastTickTime.current = time;
     }
 
     requestRef.current = requestAnimationFrame(tick);
-  }, [speed]);
+  }, [speed, onStep]);
 
   useEffect(() => {
     if (isPlaying) {
@@ -49,16 +52,37 @@ export const useSimulation = (initialSpeed = 1) => {
   
   const reset = () => {
     setIsPlaying(false);
-    setStep(0);
+    stepRef.current = 0;
+    setUiStep(0);
     lastTickTime.current = 0;
+    if (onStep) onStep(0);
+  };
+
+  const stepForward = () => {
+    setIsPlaying(false);
+    stepRef.current += 1;
+    setUiStep(stepRef.current);
+    if (onStep) onStep(stepRef.current);
+  };
+
+  const stepBackward = () => {
+    setIsPlaying(false);
+    if (stepRef.current > 0) {
+      stepRef.current -= 1;
+      setUiStep(stepRef.current);
+      if (onStep) onStep(stepRef.current);
+    }
   };
 
   return { 
     isPlaying, 
     speed, 
     setSpeed, 
-    step, 
+    step: uiStep, // Exposed to UI
+    stepRef,      // Exposed for direct access if needed
     togglePlay, 
-    reset 
+    reset,
+    stepForward,
+    stepBackward
   };
 };

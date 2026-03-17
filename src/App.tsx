@@ -3,19 +3,26 @@ import './App.css';
 import { generateMaze } from './utils/mazeGenerator';
 import MazeRenderer from './components/MazeRenderer';
 import { useSimulation } from './hooks/useSimulation';
+import { translations } from './i18n/translations';
+import type { Language } from './i18n/translations';
 import type { MazeState } from './types/maze';
 import { DEFAULT_MAZE_SIZE } from './utils/constants';
 
 function App() {
   const [maze, setMaze] = useState<MazeState | null>(null);
   const [seed, setSeed] = useState(42);
+  const [lang, setLang] = useState<Language>('ja');
   
-  const { isPlaying, speed, setSpeed, step, togglePlay, reset } = useSimulation(1);
+  const t = translations[lang];
+
+  const { 
+    isPlaying, speed, setSpeed, step, togglePlay, reset, stepForward, stepBackward 
+  } = useSimulation(undefined, 1);
 
   const handleGenerate = useCallback(() => {
     const newSeed = Math.floor(Math.random() * 10000);
     setSeed(newSeed);
-    reset(); // Reset simulation when generating new maze
+    reset();
   }, [reset]);
 
   useEffect(() => {
@@ -23,30 +30,39 @@ function App() {
     setMaze(newMaze);
   }, [seed]);
 
+  const toggleLang = () => setLang(l => l === 'en' ? 'ja' : 'en');
+
   return (
     <div className="App">
-      <h1>Micromouse Visualizer V2</h1>
+      <header className="app-header">
+        <h1>{t.title}</h1>
+        <button onClick={toggleLang} className="lang-toggle">
+          {lang === 'en' ? '日本語' : 'English'}
+        </button>
+      </header>
       
       {maze && <MazeRenderer maze={maze} />}
       
       <div className="controls">
         <div className="simulation-info">
-          <span className="step-count">Step: {step}</span>
+          <span className="step-count">{t.step}: {step}</span>
           <span className="status-badge" data-playing={isPlaying}>
-            {isPlaying ? '▶ RUNNING' : '⏸ PAUSED'}
+            {isPlaying ? t.statusRunning : t.statusPaused}
           </span>
         </div>
 
         <div className="button-group">
+          <button onClick={stepBackward} className="btn-secondary" title={t.stepBackward}>⏮</button>
           <button onClick={togglePlay} className="btn-primary">
-            {isPlaying ? 'Pause' : 'Play'}
+            {isPlaying ? t.pause : t.play}
           </button>
-          <button onClick={reset} className="btn-secondary">Reset</button>
-          <button onClick={handleGenerate} className="btn-outline">🎲 Random Maze</button>
+          <button onClick={stepForward} className="btn-secondary" title={t.stepForward}>⏭</button>
+          <button onClick={reset} className="btn-outline">{t.reset}</button>
+          <button onClick={handleGenerate} className="btn-outline">{t.generateMaze}</button>
         </div>
 
         <div className="speed-control">
-          <label>Speed: </label>
+          <label>{t.speed}: </label>
           <select 
             value={speed} 
             onChange={(e) => setSpeed(Number(e.target.value))}
@@ -59,11 +75,11 @@ function App() {
           </select>
         </div>
 
-        <div className="seed-info">Current Seed: {seed}</div>
+        <div className="seed-info">{t.currentSeed}: {seed}</div>
       </div>
 
-      <footer style={{ marginTop: '3rem', color: '#666', fontSize: '14px' }}>
-        Phase 1: Foundation & Core Simulation (Simulation Control)
+      <footer className="app-footer">
+        {t.phase}
       </footer>
     </div>
   );
