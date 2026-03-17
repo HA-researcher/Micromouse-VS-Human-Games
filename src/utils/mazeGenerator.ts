@@ -1,4 +1,5 @@
-import { Direction, MazeState } from '../types/maze';
+import { Direction } from '../types/maze';
+import type { MazeState } from '../types/maze';
 
 /**
  * Simple Seeded Random Number Generator (LCG)
