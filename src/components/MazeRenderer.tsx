@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { MazeState, Direction } from '../types/maze';
+import type { MazeState } from '../types/maze';
+import { Direction } from '../types/maze';
 
 interface MazeRendererProps {
   maze: MazeState;

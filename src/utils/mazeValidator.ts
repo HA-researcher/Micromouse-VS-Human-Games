@@ -1,4 +1,5 @@
-import { MazeState, Direction } from '../types/maze';
+import type { MazeState } from '../types/maze';
+import { Direction } from '../types/maze';
 
 /**
  * Validates if the goal area is reachable from the start (0,0).

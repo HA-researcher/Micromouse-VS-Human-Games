@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import './App.css';
 import { generateMaze } from './utils/mazeGenerator';
 import MazeRenderer from './components/MazeRenderer';
-import { MazeState } from './types/maze';
+import type { MazeState } from './types/maze';
 import { DEFAULT_MAZE_SIZE } from './utils/constants';
 
 function App() {
