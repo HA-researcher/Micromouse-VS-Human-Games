@@ -16,21 +16,26 @@ export const useSimulation = (onStep?: (step: number) => void, initialSpeed = 1)
   const requestRef = useRef<number | undefined>(undefined);
 
   const tick = useCallback((time: number) => {
-    if (!lastTickTime.current) {
-      lastTickTime.current = time;
-    }
+    const loop = (currentTime: number) => {
+      if (!lastTickTime.current) {
+        lastTickTime.current = currentTime;
+      }
 
-    const interval = 1000 / speed;
+      const interval = 1000 / speed;
 
-    if (time - lastTickTime.current >= interval) {
-      stepRef.current += 1;
-      setUiStep(stepRef.current);
-      if (onStep) onStep(stepRef.current);
-      lastTickTime.current = time;
-    }
+      if (currentTime - lastTickTime.current >= interval) {
+        stepRef.current += 1;
+        setUiStep(stepRef.current);
+        if (onStep) onStep(stepRef.current);
+        lastTickTime.current = currentTime;
+      }
 
-    requestRef.current = requestAnimationFrame(tick);
-  }, [speed, onStep]);
+      if (isPlaying) {
+        requestRef.current = requestAnimationFrame(loop);
+      }
+    };
+    loop(time);
+  }, [speed, onStep, isPlaying]);
 
   useEffect(() => {
     if (isPlaying) {

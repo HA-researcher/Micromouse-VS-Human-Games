@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import './App.css';
 import { generateMaze } from './utils/mazeGenerator';
 import MazeRenderer from './components/MazeRenderer';
@@ -7,15 +7,17 @@ import { translations } from './i18n/translations';
 import type { Language } from './i18n/translations';
 import { SimulatorEngine } from './utils/simulatorEngine';
 import type { MouseState } from './types/simulator';
-import type { MazeState } from './types/maze';
 import { DEFAULT_MAZE_SIZE } from './utils/constants';
 
 function App() {
-  const [maze, setMaze] = useState<MazeState | null>(null);
   const [seed, setSeed] = useState(42);
   const [lang, setLang] = useState<Language>('ja');
-  const [mouse, setMouse] = useState<MouseState>(SimulatorEngine.getInitialState());
   
+  const maze = useMemo(() => {
+    return generateMaze(DEFAULT_MAZE_SIZE, DEFAULT_MAZE_SIZE, seed);
+  }, [seed]);
+
+  const [mouse, setMouse] = useState<MouseState>(SimulatorEngine.getInitialState());
   const t = translations[lang];
 
   const { 
@@ -32,11 +34,6 @@ function App() {
     setSeed(newSeed);
     handleReset();
   }, [handleReset]);
-
-  useEffect(() => {
-    const newMaze = generateMaze(DEFAULT_MAZE_SIZE, DEFAULT_MAZE_SIZE, seed);
-    setMaze(newMaze);
-  }, [seed]);
 
   // Manual drive keyboard support (F-10 foundation)
   useEffect(() => {
