@@ -20,9 +20,13 @@ function App() {
   const [mouse, setMouse] = useState<MouseState>(SimulatorEngine.getInitialState());
   const t = translations[lang];
 
+  const onTick = useCallback(() => {
+    setMouse(prev => SimulatorEngine.stepLeftHand(prev, maze));
+  }, [maze]);
+
   const { 
     isPlaying, speed, setSpeed, step, togglePlay, reset, stepForward, stepBackward 
-  } = useSimulation(undefined, 1);
+  } = useSimulation(onTick, 1);
 
   const handleReset = useCallback(() => {
     reset();
@@ -37,7 +41,7 @@ function App() {
 
   // Manual drive keyboard support (F-10 foundation)
   useEffect(() => {
-    if (!maze) return;
+    if (!maze || isPlaying) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Prevent scrolling with arrow keys
@@ -64,7 +68,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [maze]);
+  }, [maze, isPlaying]);
 
   const toggleLang = () => setLang(l => l === 'en' ? 'ja' : 'en');
 
@@ -89,10 +93,10 @@ function App() {
 
         <div className="button-group">
           <button onClick={stepBackward} className="btn-secondary" title={t.stepBackward}>⏮</button>
-          <button onClick={togglePlay} className="btn-primary" disabled>
-            {isPlaying ? t.pause : t.play} (Under Dev)
+          <button onClick={togglePlay} className="btn-primary">
+            {isPlaying ? t.pause : t.play}
           </button>
-          <button onClick={stepForward} className="btn-secondary" title={t.stepForward} disabled>⏭</button>
+          <button onClick={stepForward} className="btn-secondary" title={t.stepForward} onClickCapture={onTick}>⏭</button>
           <button onClick={handleReset} className="btn-outline">{t.reset}</button>
           <button onClick={handleGenerate} className="btn-outline">{t.generateMaze}</button>
         </div>
