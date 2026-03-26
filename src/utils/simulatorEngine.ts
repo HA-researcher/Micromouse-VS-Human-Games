@@ -83,6 +83,31 @@ export const SimulatorEngine = {
   },
   
   /**
+   * Performs one step of a simple Left-hand rule algorithm.
+   */
+  stepLeftHand: (mouse: MouseState, maze: MazeState): MouseState => {
+    // 1. Try to turn left
+    const mouseLeft = SimulatorEngine.turnLeft(mouse);
+    if (SimulatorEngine.canMoveForward(mouseLeft, maze)) {
+      return SimulatorEngine.moveForward(mouseLeft, maze);
+    }
+    
+    // 2. Try to move forward
+    if (SimulatorEngine.canMoveForward(mouse, maze)) {
+      return SimulatorEngine.moveForward(mouse, maze);
+    }
+    
+    // 3. Try to turn right
+    const mouseRight = SimulatorEngine.turnRight(mouse);
+    if (SimulatorEngine.canMoveForward(mouseRight, maze)) {
+      return SimulatorEngine.moveForward(mouseRight, maze);
+    }
+    
+    // 4. U-turn (turn right twice)
+    return SimulatorEngine.turnRight(mouseRight);
+  },
+  
+  /**
    * Initializes the mouse at the start position.
    */
   getInitialState: (): MouseState => ({
