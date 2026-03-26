@@ -1,20 +1,24 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import './App.css';
 import { generateMaze } from './utils/mazeGenerator';
+import { importMaz, exportMaz } from './utils/mazParser';
 import MazeRenderer from './components/MazeRenderer';
 import { useSimulation } from './hooks/useSimulation';
 import { translations } from './i18n/translations';
 import type { Language } from './i18n/translations';
 import { SimulatorEngine } from './utils/simulatorEngine';
 import type { MouseState } from './types/simulator';
+import type { MazeState } from './types/maze';
 import { DEFAULT_MAZE_SIZE } from './utils/constants';
 
 function App() {
   const [seed, setSeed] = useState(42);
   const [lang, setLang] = useState<Language>('ja');
   
-  const maze = useMemo(() => {
-    return generateMaze(DEFAULT_MAZE_SIZE, DEFAULT_MAZE_SIZE, seed);
+  const [maze, setMaze] = useState<MazeState>(() => generateMaze(DEFAULT_MAZE_SIZE, DEFAULT_MAZE_SIZE, seed));
+
+  useEffect(() => {
+    setMaze(generateMaze(DEFAULT_MAZE_SIZE, DEFAULT_MAZE_SIZE, seed));
   }, [seed]);
 
   const [mouse, setMouse] = useState<MouseState>(SimulatorEngine.getInitialState());
@@ -38,6 +42,39 @@ function App() {
     setSeed(newSeed);
     handleReset();
   }, [handleReset]);
+
+  const handleImportMaz = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const newMaze = importMaz(text);
+        setMaze(newMaze);
+        handleReset();
+      } catch (err) {
+        alert(t.invalidMaz);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // Reset input
+  };
+
+  const handleExportMaz = () => {
+    if (!maze) return;
+    const text = exportMaz(maze);
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `maze_${maze.width}x${maze.height}_s${seed}.maz`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   // Manual drive keyboard support (F-10 foundation)
   useEffect(() => {
@@ -99,6 +136,14 @@ function App() {
           <button onClick={stepForward} className="btn-secondary" title={t.stepForward} onClickCapture={onTick}>⏭</button>
           <button onClick={handleReset} className="btn-outline">{t.reset}</button>
           <button onClick={handleGenerate} className="btn-outline">{t.generateMaze}</button>
+        </div>
+
+        <div className="button-group io-controls">
+          <label className="btn-outline file-upload">
+            <input type="file" accept=".maz,.txt" onChange={handleImportMaz} style={{ display: 'none' }} />
+            {t.importMaz}
+          </label>
+          <button onClick={handleExportMaz} className="btn-outline">{t.exportMaz}</button>
         </div>
 
         <div className="manual-hint">
