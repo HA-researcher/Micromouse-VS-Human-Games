@@ -8,12 +8,13 @@ import { translations } from './i18n/translations';
 import type { Language } from './i18n/translations';
 import { SimulatorEngine } from './utils/simulatorEngine';
 import type { MouseState } from './types/simulator';
-import type { MazeState } from './types/maze';
+import { Direction, type MazeState } from './types/maze';
 import { DEFAULT_MAZE_SIZE } from './utils/constants';
 
 function App() {
   const [seed, setSeed] = useState(42);
   const [lang, setLang] = useState<Language>('ja');
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
   
   const [maze, setMaze] = useState<MazeState>(() => generateMaze(DEFAULT_MAZE_SIZE, DEFAULT_MAZE_SIZE, seed));
 
@@ -27,6 +28,31 @@ function App() {
   const onTick = useCallback(() => {
     setMouse(prev => SimulatorEngine.stepLeftHand(prev, maze));
   }, [maze]);
+
+  const handleWallToggle = useCallback((x: number, y: number, direction: Direction) => {
+    if (!isEditMode) return;
+
+    setMaze(prev => {
+      const newWalls = new Uint8Array(prev.walls);
+      
+      const toggleWall = (cx: number, cy: number, dir: Direction) => {
+        if (cx < 0 || cx >= prev.width || cy < 0 || cy >= prev.height) return;
+        const idx = cy * prev.width + cx;
+        newWalls[idx] ^= (1 << dir);
+      };
+
+      // Toggle clicked wall
+      toggleWall(x, y, direction);
+
+      // Toggle adjacent cell's corresponding wall
+      if (direction === Direction.North) toggleWall(x, y - 1, Direction.South);
+      else if (direction === Direction.South) toggleWall(x, y + 1, Direction.North);
+      else if (direction === Direction.East) toggleWall(x + 1, y, Direction.West);
+      else if (direction === Direction.West) toggleWall(x - 1, y, Direction.East);
+
+      return { ...prev, walls: newWalls };
+    });
+  }, [isEditMode]);
 
   const { 
     isPlaying, speed, setSpeed, step, togglePlay, reset, stepForward, stepBackward 
@@ -54,7 +80,7 @@ function App() {
         const newMaze = importMaz(text);
         setMaze(newMaze);
         handleReset();
-      } catch (err) {
+      } catch {
         alert(t.invalidMaz);
       }
     };
@@ -118,7 +144,11 @@ function App() {
         </button>
       </header>
       
-      {maze && <MazeRenderer maze={maze} mouse={mouse} />}
+      {maze && <MazeRenderer 
+        maze={maze} 
+        mouse={mouse} 
+        onWallToggle={isEditMode ? handleWallToggle : undefined} 
+      />}
       
       <div className="controls">
         <div className="simulation-info">
@@ -139,6 +169,13 @@ function App() {
         </div>
 
         <div className="button-group io-controls">
+          <button 
+            onClick={() => setIsEditMode(!isEditMode)} 
+            className={isEditMode ? "btn-primary" : "btn-outline"}
+            title={lang === 'ja' ? "クリックで壁を編集できます" : "Click walls to toggle them"}
+          >
+            {isEditMode ? t.editModeOff : t.editModeOn}
+          </button>
           <label className="btn-outline file-upload">
             <input type="file" accept=".maz,.txt" onChange={handleImportMaz} style={{ display: 'none' }} />
             {t.importMaz}
