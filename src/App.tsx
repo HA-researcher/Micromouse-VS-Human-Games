@@ -27,8 +27,8 @@ function App() {
   const t = translations[lang];
 
   const onTick = useCallback(() => {
-    setMouse(prev => SimulatorEngine.stepLeftHand(prev, maze));
-  }, [maze]);
+    setMouse(prev => SimulatorEngine.stepLeftHand(prev, maze, { straightCost, turnCost }));
+  }, [maze, straightCost, turnCost]);
 
   const handleWallToggle = useCallback((x: number, y: number, direction: Direction) => {
     if (!isEditMode) return;
@@ -107,6 +107,8 @@ function App() {
   useEffect(() => {
     if (!maze || isPlaying) return;
 
+    const params = { straightCost, turnCost };
+
     const handleKeyDown = (e: KeyboardEvent) => {
       // Prevent scrolling with arrow keys
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
@@ -115,24 +117,24 @@ function App() {
 
       switch (e.key) {
         case 'ArrowUp':
-          setMouse(prev => SimulatorEngine.moveForward(prev, maze));
+          setMouse(prev => SimulatorEngine.moveForward(prev, maze, params));
           break;
         case 'ArrowLeft':
-          setMouse(prev => SimulatorEngine.turnLeft(prev));
+          setMouse(prev => SimulatorEngine.turnLeft(prev, params));
           break;
         case 'ArrowRight':
-          setMouse(prev => SimulatorEngine.turnRight(prev));
+          setMouse(prev => SimulatorEngine.turnRight(prev, params));
           break;
         case 'ArrowDown':
           // U-Turn logic (Turn Right twice)
-          setMouse(prev => SimulatorEngine.turnRight(SimulatorEngine.turnRight(prev)));
+          setMouse(prev => SimulatorEngine.turnRight(SimulatorEngine.turnRight(prev, params), params));
           break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [maze, isPlaying]);
+  }, [maze, isPlaying, straightCost, turnCost]);
 
   const toggleLang = () => setLang(l => l === 'en' ? 'ja' : 'en');
 
@@ -154,6 +156,7 @@ function App() {
       <div className="controls">
         <div className="simulation-info">
           <span className="step-count">{t.step}: {step}</span>
+          <span className="step-count" style={{marginLeft: '10px'}}>{t.totalCost}: {mouse.totalCost}</span>
           <span className="status-badge" data-playing={isPlaying}>
             {isPlaying ? t.statusRunning : t.statusPaused}
           </span>
