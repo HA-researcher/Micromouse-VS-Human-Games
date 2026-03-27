@@ -4,13 +4,10 @@ export const translations = {
   en: {
     title: 'Micromouse Visualizer V2',
     generateMaze: '🎲 Random Maze',
-    mazeSize: 'Maze Size',
-    mazeSize8: '8x8 (Micro)',
-    mazeSize16: '16x16 (Classic)',
-    mazeSize32: '32x32 (Half-size)',
-    straightCost: 'Straight Cost',
     turnCost: 'Turn Cost',
     totalCost: 'Total Cost',
+    editModeOn: '✏️ Edit Maze',
+    editModeOff: '✅ Finish Editing',
     play: 'Play',
     pause: 'Pause',
     reset: 'Reset',
@@ -24,18 +21,19 @@ export const translations = {
     phase: 'Phase 1: Foundation & Core Simulation',
     importMaz: '📁 Load .maz',
     exportMaz: '💾 Save .maz',
-    invalidMaz: 'Invalid .maz file format.'
+    invalidMaz: 'Invalid .maz file format.',
+    mazeSize: 'Maze Size',
+    mazeSize8: '8x8 (Micro)',
+    mazeSize16: '16x16 (Classic)',
+    mazeSize32: '32x32 (Half-size)'
   },
   ja: {
     title: 'マイクロマウス・ビジュアライザ V2',
     generateMaze: '🎲 迷路再生成',
-    mazeSize: '迷路サイズ',
-    mazeSize8: '8x8 (極小)',
-    mazeSize16: '16x16 (クラシック)',
-    mazeSize32: '32x32 (ハーフサイズ)',
-    straightCost: '直進コスト',
     turnCost: 'ターンコスト',
     totalCost: '総コスト',
+    editModeOn: '✏️ 迷路を編集',
+    editModeOff: '✅ 編集完了',
     play: '再生',
     pause: '停止',
     reset: 'リセット',
@@ -49,6 +47,10 @@ export const translations = {
     phase: 'フェーズ 1: 基盤とコア・シミュレーション',
     importMaz: '📁 .maz 読込',
     exportMaz: '💾 .maz 保存',
-    invalidMaz: '無効な .maz ファイル形式です。'
+    invalidMaz: '無効な .maz ファイル形式です。',
+    mazeSize: '迷路サイズ',
+    mazeSize8: '8x8 (極小)',
+    mazeSize16: '16x16 (クラシック)',
+    mazeSize32: '32x32 (ハーフサイズ)'
   }
 };
