@@ -2,6 +2,8 @@ import { Direction } from '../types/maze';
 import type { MazeState } from '../types/maze';
 import type { MouseState, MachineParameters } from '../types/simulator';
 
+export type AlgorithmType = 'LeftHand' | 'RightHand';
+
 /**
  * Mechanics for mouse movement and interaction within the maze.
  */
@@ -110,6 +112,31 @@ export const SimulatorEngine = {
     
     // 4. U-turn (turn right twice)
     return SimulatorEngine.turnRight(SimulatorEngine.turnRight(mouseRight, params), params);
+  },
+
+  /**
+   * Performs one step of a simple Right-hand rule algorithm.
+   */
+  stepRightHand: (mouse: MouseState, maze: MazeState, params?: MachineParameters): MouseState => {
+    // 1. Try to turn right
+    const mouseRight = SimulatorEngine.turnRight(mouse, params);
+    if (SimulatorEngine.canMoveForward(mouseRight, maze)) {
+      return SimulatorEngine.moveForward(mouseRight, maze, params);
+    }
+    
+    // 2. Try to move forward
+    if (SimulatorEngine.canMoveForward(mouse, maze)) {
+      return SimulatorEngine.moveForward(mouse, maze, params);
+    }
+    
+    // 3. Try to turn left
+    const mouseLeft = SimulatorEngine.turnLeft(mouse, params);
+    if (SimulatorEngine.canMoveForward(mouseLeft, maze)) {
+      return SimulatorEngine.moveForward(mouseLeft, maze, params);
+    }
+    
+    // 4. U-turn (turn right twice)
+    return SimulatorEngine.turnRight(mouseRight, params);
   },
   
   /**

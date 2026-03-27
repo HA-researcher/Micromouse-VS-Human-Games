@@ -4,6 +4,7 @@ export const translations = {
   en: {
     title: 'Micromouse Visualizer V2',
     generateMaze: '🎲 Random Maze',
+    straightCost: 'Straight Cost',
     turnCost: 'Turn Cost',
     totalCost: 'Total Cost',
     editModeOn: '✏️ Edit Maze',
@@ -30,6 +31,7 @@ export const translations = {
   ja: {
     title: 'マイクロマウス・ビジュアライザ V2',
     generateMaze: '🎲 迷路再生成',
+    straightCost: '直進コスト',
     turnCost: 'ターンコスト',
     totalCost: '総コスト',
     editModeOn: '✏️ 迷路を編集',

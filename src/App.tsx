@@ -15,6 +15,8 @@ function App() {
   const [seed, setSeed] = useState(42);
   const [lang, setLang] = useState<Language>('ja');
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [straightCost, setStraightCost] = useState<number>(1);
+  const [turnCost, setTurnCost] = useState<number>(3);
   
   const [mazeSize, setMazeSize] = useState<number>(DEFAULT_MAZE_SIZE);
   const [maze, setMaze] = useState<MazeState>(() => generateMaze(mazeSize, mazeSize, seed));
@@ -23,11 +25,14 @@ function App() {
     setMaze(generateMaze(mazeSize, mazeSize, seed));
   }, [seed, mazeSize]);
 
-  const [mouse, setMouse] = useState<MouseState>(SimulatorEngine.getInitialState());
+  const [mouse1, setMouse1] = useState<MouseState>(SimulatorEngine.getInitialState());
+  const [mouse2, setMouse2] = useState<MouseState>(SimulatorEngine.getInitialState());
   const t = translations[lang];
 
   const onTick = useCallback(() => {
-    setMouse(prev => SimulatorEngine.stepLeftHand(prev, maze, { straightCost, turnCost }));
+    const params = { straightCost, turnCost };
+    setMouse1(prev => SimulatorEngine.stepLeftHand(prev, maze, params));
+    setMouse2(prev => SimulatorEngine.stepRightHand(prev, maze, params));
   }, [maze, straightCost, turnCost]);
 
   const handleWallToggle = useCallback((x: number, y: number, direction: Direction) => {
@@ -61,7 +66,8 @@ function App() {
 
   const handleReset = useCallback(() => {
     reset();
-    setMouse(SimulatorEngine.getInitialState());
+    setMouse1(SimulatorEngine.getInitialState());
+    setMouse2(SimulatorEngine.getInitialState());
   }, [reset]);
 
   const handleGenerate = useCallback(() => {
@@ -117,17 +123,20 @@ function App() {
 
       switch (e.key) {
         case 'ArrowUp':
-          setMouse(prev => SimulatorEngine.moveForward(prev, maze, params));
+          setMouse1(prev => SimulatorEngine.moveForward(prev, maze, params));
+          setMouse2(prev => SimulatorEngine.moveForward(prev, maze, params));
           break;
         case 'ArrowLeft':
-          setMouse(prev => SimulatorEngine.turnLeft(prev, params));
+          setMouse1(prev => SimulatorEngine.turnLeft(prev, params));
+          setMouse2(prev => SimulatorEngine.turnLeft(prev, params));
           break;
         case 'ArrowRight':
-          setMouse(prev => SimulatorEngine.turnRight(prev, params));
+          setMouse1(prev => SimulatorEngine.turnRight(prev, params));
+          setMouse2(prev => SimulatorEngine.turnRight(prev, params));
           break;
         case 'ArrowDown':
-          // U-Turn logic (Turn Right twice)
-          setMouse(prev => SimulatorEngine.turnRight(SimulatorEngine.turnRight(prev, params), params));
+          setMouse1(prev => SimulatorEngine.turnRight(SimulatorEngine.turnRight(prev, params), params));
+          setMouse2(prev => SimulatorEngine.turnRight(SimulatorEngine.turnRight(prev, params), params));
           break;
       }
     };
@@ -147,16 +156,35 @@ function App() {
         </button>
       </header>
       
-      {maze && <MazeRenderer 
-        maze={maze} 
-        mouse={mouse} 
-        onWallToggle={isEditMode ? handleWallToggle : undefined} 
-      />}
+      <div className="split-screen-container" style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <div className="simulator-panel">
+          <h3 style={{color: '#fff', fontSize: '1rem', marginBottom: '8px'}}>Algorithm 1 (Left-hand)</h3>
+          {maze && <MazeRenderer 
+            maze={maze} 
+            mouse={mouse1} 
+            onWallToggle={isEditMode ? handleWallToggle : undefined} 
+          />}
+          <div className="simulation-info" style={{marginTop: '10px'}}>
+            <span className="step-count">{t.totalCost}: {mouse1.totalCost}</span>
+          </div>
+        </div>
+        
+        <div className="simulator-panel">
+          <h3 style={{color: '#fff', fontSize: '1rem', marginBottom: '8px'}}>Algorithm 2 (Right-hand)</h3>
+          {maze && <MazeRenderer 
+            maze={maze} 
+            mouse={mouse2} 
+            onWallToggle={isEditMode ? handleWallToggle : undefined} 
+          />}
+          <div className="simulation-info" style={{marginTop: '10px'}}>
+            <span className="step-count">{t.totalCost}: {mouse2.totalCost}</span>
+          </div>
+        </div>
+      </div>
       
-      <div className="controls">
+      <div className="controls" style={{marginTop: '20px'}}>
         <div className="simulation-info">
           <span className="step-count">{t.step}: {step}</span>
-          <span className="step-count" style={{marginLeft: '10px'}}>{t.totalCost}: {mouse.totalCost}</span>
           <span className="status-badge" data-playing={isPlaying}>
             {isPlaying ? t.statusRunning : t.statusPaused}
           </span>
@@ -205,6 +233,13 @@ function App() {
             <option value={16}>{t.mazeSize16}</option>
             <option value={32}>{t.mazeSize32}</option>
           </select>
+        </div>
+
+        <div className="speed-control">
+          <label>{t.straightCost}: </label>
+          <input type="number" value={straightCost} onChange={e => setStraightCost(Number(e.target.value))} className="size-select" style={{width: '60px'}} />
+          <label style={{marginLeft: '10px'}}>{t.turnCost}: </label>
+          <input type="number" value={turnCost} onChange={e => setTurnCost(Number(e.target.value))} className="size-select" style={{width: '60px'}} />
         </div>
 
         <div className="speed-control">
