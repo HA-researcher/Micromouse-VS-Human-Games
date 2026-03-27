@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
  * @param onStep Optional callback called on every step (e.g., for direct canvas updates).
  * @param initialSpeed Initial ticks per second (base speed).
  */
-export const useSimulation = (onStep?: (step: number) => void, initialSpeed = 1) => {
+export const useSimulation = (onStep?: (step: number) => void | Promise<void>, initialSpeed = 1) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(initialSpeed);
   // Requirement 5.6: Animation step_index held in useRef to avoid React re-renders.
@@ -14,9 +14,10 @@ export const useSimulation = (onStep?: (step: number) => void, initialSpeed = 1)
   
   const lastTickTime = useRef<number>(0);
   const requestRef = useRef<number | undefined>(undefined);
+  const isProcessingRef = useRef<boolean>(false);
 
   const tick = useCallback((time: number) => {
-    const loop = (currentTime: number) => {
+    const loop = async (currentTime: number) => {
       if (!lastTickTime.current) {
         lastTickTime.current = currentTime;
       }
@@ -24,10 +25,22 @@ export const useSimulation = (onStep?: (step: number) => void, initialSpeed = 1)
       const interval = 1000 / speed;
 
       if (currentTime - lastTickTime.current >= interval) {
-        stepRef.current += 1;
-        setUiStep(stepRef.current);
-        if (onStep) onStep(stepRef.current);
-        lastTickTime.current = currentTime;
+        if (!isProcessingRef.current) {
+          isProcessingRef.current = true;
+          stepRef.current += 1;
+          setUiStep(stepRef.current);
+          
+          if (onStep) {
+            try {
+              await onStep(stepRef.current);
+            } catch (e) {
+              console.error(e);
+            }
+          }
+          
+          isProcessingRef.current = false;
+          lastTickTime.current = performance.now();
+        }
       }
 
       if (isPlaying) {

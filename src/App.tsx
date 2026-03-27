@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import './App.css';
 import { generateMaze } from './utils/mazeGenerator';
 import { importMaz, exportMaz } from './utils/mazParser';
@@ -10,6 +10,20 @@ import { SimulatorEngine } from './utils/simulatorEngine';
 import type { MouseState } from './types/simulator';
 import { Direction, type MazeState } from './types/maze';
 import { DEFAULT_MAZE_SIZE } from './utils/constants';
+import Editor from '@monaco-editor/react';
+import { executeCustomAlgorithm } from './utils/customAlgorithmRunner';
+
+export type AlgorithmMode = 'LeftHand' | 'RightHand' | 'Custom';
+const DEFAULT_CUSTOM_CODE = `// Custom Algorithm (JavaScript)
+// Available globally: mouse, maze, Direction, SimulatorEngine, params
+// Must return a new MouseState object.
+
+// Example: Move Forward if possible, else Turn Left
+if (SimulatorEngine.canMoveForward(mouse, maze)) {
+  return SimulatorEngine.moveForward(mouse, maze, params);
+}
+return SimulatorEngine.turnLeft(mouse, params);
+`;
 
 function App() {
   const [seed, setSeed] = useState(42);
@@ -29,11 +43,42 @@ function App() {
   const [mouse2, setMouse2] = useState<MouseState>(SimulatorEngine.getInitialState());
   const t = translations[lang];
 
-  const onTick = useCallback(() => {
+  const [algo1, setAlgo1] = useState<AlgorithmMode>('LeftHand');
+  const [algo2, setAlgo2] = useState<AlgorithmMode>('RightHand');
+  const [customCode1, setCustomCode1] = useState(DEFAULT_CUSTOM_CODE);
+  const [customCode2, setCustomCode2] = useState(DEFAULT_CUSTOM_CODE);
+  const [error1, setError1] = useState<string | null>(null);
+  const [error2, setError2] = useState<string | null>(null);
+
+  const mouse1Ref = useRef(mouse1);
+  const mouse2Ref = useRef(mouse2);
+  useEffect(() => { mouse1Ref.current = mouse1; }, [mouse1]);
+  useEffect(() => { mouse2Ref.current = mouse2; }, [mouse2]);
+
+  const onTick = useCallback(async () => {
     const params = { straightCost, turnCost };
-    setMouse1(prev => SimulatorEngine.stepLeftHand(prev, maze, params));
-    setMouse2(prev => SimulatorEngine.stepRightHand(prev, maze, params));
-  }, [maze, straightCost, turnCost]);
+    
+    const runAlgo = async (algo: AlgorithmMode, mouseData: MouseState, code: string, setError: (e: string|null) => void) => {
+      try {
+        if (algo === 'LeftHand') return SimulatorEngine.stepLeftHand(mouseData, maze, params);
+        if (algo === 'RightHand') return SimulatorEngine.stepRightHand(mouseData, maze, params);
+        if (algo === 'Custom') {
+          const res = await executeCustomAlgorithm(mouseData, maze, params, code);
+          setError(null);
+          return res;
+        }
+      } catch (e) {
+        setError((e as Error).message || String(e));
+      }
+      return mouseData; // on error, return unchanged mouse
+    };
+
+    const next1 = await runAlgo(algo1, mouse1Ref.current, customCode1, setError1);
+    setMouse1(next1);
+
+    const next2 = await runAlgo(algo2, mouse2Ref.current, customCode2, setError2);
+    setMouse2(next2);
+  }, [maze, straightCost, turnCost, algo1, algo2, customCode1, customCode2]);
 
   const handleWallToggle = useCallback((x: number, y: number, direction: Direction) => {
     if (!isEditMode) return;
@@ -157,8 +202,22 @@ function App() {
       </header>
       
       <div className="split-screen-container" style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
-        <div className="simulator-panel">
-          <h3 style={{color: '#fff', fontSize: '1rem', marginBottom: '8px'}}>Algorithm 1 (Left-hand)</h3>
+        <div className="simulator-panel" style={{ flex: '1 1 45%', minWidth: '400px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <h3 style={{color: '#fff', fontSize: '1rem', margin: 0}}>Algorithm 1</h3>
+            <select value={algo1} onChange={(e) => setAlgo1(e.target.value as AlgorithmMode)} className="size-select">
+              <option value="LeftHand">Left-Hand</option>
+              <option value="RightHand">Right-Hand</option>
+              <option value="Custom">Custom (JS)</option>
+            </select>
+          </div>
+          {algo1 === 'Custom' && (
+            <div style={{height: '250px', marginBottom: '10px', border: '1px solid #444', borderRadius: '4px', overflow: 'hidden'}}>
+              <Editor defaultLanguage="javascript" theme="vs-dark" value={customCode1} onChange={(v) => setCustomCode1(v || '')} options={{minimap: {enabled: false}, fontSize: 13, scrollBeyondLastLine: false}} />
+            </div>
+          )}
+          {error1 && <div style={{color: '#ff5252', fontSize: '12px', marginBottom: '10px', padding: '5px', backgroundColor: 'rgba(255,0,0,0.1)'}}>{error1}</div>}
+          
           {maze && <MazeRenderer 
             maze={maze} 
             mouse={mouse1} 
@@ -169,8 +228,22 @@ function App() {
           </div>
         </div>
         
-        <div className="simulator-panel">
-          <h3 style={{color: '#fff', fontSize: '1rem', marginBottom: '8px'}}>Algorithm 2 (Right-hand)</h3>
+        <div className="simulator-panel" style={{ flex: '1 1 45%', minWidth: '400px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <h3 style={{color: '#fff', fontSize: '1rem', margin: 0}}>Algorithm 2</h3>
+            <select value={algo2} onChange={(e) => setAlgo2(e.target.value as AlgorithmMode)} className="size-select">
+              <option value="LeftHand">Left-Hand</option>
+              <option value="RightHand">Right-Hand</option>
+              <option value="Custom">Custom (JS)</option>
+            </select>
+          </div>
+          {algo2 === 'Custom' && (
+            <div style={{height: '250px', marginBottom: '10px', border: '1px solid #444', borderRadius: '4px', overflow: 'hidden'}}>
+              <Editor defaultLanguage="javascript" theme="vs-dark" value={customCode2} onChange={(v) => setCustomCode2(v || '')} options={{minimap: {enabled: false}, fontSize: 13, scrollBeyondLastLine: false}} />
+            </div>
+          )}
+          {error2 && <div style={{color: '#ff5252', fontSize: '12px', marginBottom: '10px', padding: '5px', backgroundColor: 'rgba(255,0,0,0.1)'}}>{error2}</div>}
+          
           {maze && <MazeRenderer 
             maze={maze} 
             mouse={mouse2} 
