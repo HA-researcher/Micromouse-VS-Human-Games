@@ -7,9 +7,10 @@ interface MazeRendererProps {
   maze: MazeState;
   mouse?: MouseState;
   cellSize?: number;
+  onWallToggle?: (x: number, y: number, direction: Direction) => void;
 }
 
-const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, cellSize = 30 }) => {
+const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, cellSize = 30, onWallToggle }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -144,13 +145,46 @@ const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, cellSize = 30 
     }
   }, [maze, mouse, cellSize]);
 
+  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!onWallToggle || !canvasRef.current) return;
+    
+    const rect = canvasRef.current.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    const cellX = Math.floor(clickX / cellSize);
+    const cellY = Math.floor(clickY / cellSize);
+
+    if (cellX < 0 || cellX >= maze.width || cellY < 0 || cellY >= maze.height) return;
+
+    const offsetX = clickX % cellSize;
+    const offsetY = clickY % cellSize;
+
+    const threshold = cellSize * 0.25;
+
+    const distN = offsetY;
+    const distS = cellSize - offsetY;
+    const distW = offsetX;
+    const distE = cellSize - offsetX;
+
+    const minDist = Math.min(distN, distS, distW, distE);
+
+    if (minDist <= threshold) {
+      if (minDist === distN) onWallToggle(cellX, cellY, Direction.North);
+      else if (minDist === distS) onWallToggle(cellX, cellY, Direction.South);
+      else if (minDist === distW) onWallToggle(cellX, cellY, Direction.West);
+      else if (minDist === distE) onWallToggle(cellX, cellY, Direction.East);
+    }
+  };
+
   return (
     <div className="maze-renderer-container">
       <canvas
         ref={canvasRef}
         width={maze.width * cellSize}
         height={maze.height * cellSize}
-        style={{ border: '2px solid #444', borderRadius: '4px' }}
+        onClick={handleCanvasClick}
+        style={{ border: '2px solid #444', borderRadius: '4px', cursor: onWallToggle ? 'crosshair' : 'default' }}
       />
     </div>
   );
