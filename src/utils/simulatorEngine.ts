@@ -1,6 +1,6 @@
 import { Direction } from '../types/maze';
 import type { MazeState } from '../types/maze';
-import type { MouseState } from '../types/simulator';
+import type { MouseState, MachineParameters } from '../types/simulator';
 
 /**
  * Mechanics for mouse movement and interaction within the maze.
@@ -33,7 +33,7 @@ export const SimulatorEngine = {
   /**
    * Returns a new mouse state after moving forward.
    */
-  moveForward: (mouse: MouseState, maze: MazeState): MouseState => {
+  moveForward: (mouse: MouseState, maze: MazeState, params?: MachineParameters): MouseState => {
     if (!SimulatorEngine.canMoveForward(mouse, maze)) {
       return mouse;
     }
@@ -44,7 +44,8 @@ export const SimulatorEngine = {
     else if (mouse.direction === Direction.South) y += 1;
     else if (mouse.direction === Direction.West) x -= 1;
 
-    const newMouse = { ...mouse, x, y };
+    const costDelta = params ? params.straightCost : 1;
+    const newMouse = { ...mouse, x, y, totalCost: mouse.totalCost + costDelta };
     newMouse.history = [
       ...mouse.history,
       { x, y, direction: mouse.direction, timestamp: Date.now() }
@@ -55,11 +56,13 @@ export const SimulatorEngine = {
   /**
    * Returns a new mouse state after turning left.
    */
-  turnLeft: (mouse: MouseState): MouseState => {
+  turnLeft: (mouse: MouseState, params?: MachineParameters): MouseState => {
     const nextDir = (mouse.direction + 3) % 4; // (dir - 1 + 4) % 4
+    const costDelta = params ? params.turnCost : 3;
     return { 
       ...mouse, 
       direction: nextDir as Direction,
+      totalCost: mouse.totalCost + costDelta,
       history: [
         ...mouse.history,
         { x: mouse.x, y: mouse.y, direction: nextDir as Direction, timestamp: Date.now() }
@@ -70,11 +73,13 @@ export const SimulatorEngine = {
   /**
    * Returns a new mouse state after turning right.
    */
-  turnRight: (mouse: MouseState): MouseState => {
+  turnRight: (mouse: MouseState, params?: MachineParameters): MouseState => {
     const nextDir = (mouse.direction + 1) % 4;
+    const costDelta = params ? params.turnCost : 3;
     return { 
       ...mouse, 
       direction: nextDir as Direction,
+      totalCost: mouse.totalCost + costDelta,
       history: [
         ...mouse.history,
         { x: mouse.x, y: mouse.y, direction: nextDir as Direction, timestamp: Date.now() }
@@ -85,26 +90,26 @@ export const SimulatorEngine = {
   /**
    * Performs one step of a simple Left-hand rule algorithm.
    */
-  stepLeftHand: (mouse: MouseState, maze: MazeState): MouseState => {
+  stepLeftHand: (mouse: MouseState, maze: MazeState, params?: MachineParameters): MouseState => {
     // 1. Try to turn left
-    const mouseLeft = SimulatorEngine.turnLeft(mouse);
+    const mouseLeft = SimulatorEngine.turnLeft(mouse, params);
     if (SimulatorEngine.canMoveForward(mouseLeft, maze)) {
-      return SimulatorEngine.moveForward(mouseLeft, maze);
+      return SimulatorEngine.moveForward(mouseLeft, maze, params);
     }
     
     // 2. Try to move forward
     if (SimulatorEngine.canMoveForward(mouse, maze)) {
-      return SimulatorEngine.moveForward(mouse, maze);
+      return SimulatorEngine.moveForward(mouse, maze, params);
     }
     
     // 3. Try to turn right
-    const mouseRight = SimulatorEngine.turnRight(mouse);
+    const mouseRight = SimulatorEngine.turnRight(mouse, params);
     if (SimulatorEngine.canMoveForward(mouseRight, maze)) {
-      return SimulatorEngine.moveForward(mouseRight, maze);
+      return SimulatorEngine.moveForward(mouseRight, maze, params);
     }
     
     // 4. U-turn (turn right twice)
-    return SimulatorEngine.turnRight(mouseRight);
+    return SimulatorEngine.turnRight(SimulatorEngine.turnRight(mouseRight, params), params);
   },
   
   /**
@@ -114,6 +119,7 @@ export const SimulatorEngine = {
     x: 0,
     y: 0,
     direction: Direction.North,
-    history: [{ x: 0, y: 0, direction: Direction.North, timestamp: Date.now() }]
+    history: [{ x: 0, y: 0, direction: Direction.North, timestamp: Date.now() }],
+    totalCost: 0
   })
 };

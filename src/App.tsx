@@ -14,6 +14,8 @@ import { DEFAULT_MAZE_SIZE } from './utils/constants';
 function App() {
   const [seed, setSeed] = useState(42);
   const [lang, setLang] = useState<Language>('ja');
+  const [straightCost, setStraightCost] = useState<number>(1);
+  const [turnCost, setTurnCost] = useState<number>(3);
   
   const [maze, setMaze] = useState<MazeState>(() => generateMaze(DEFAULT_MAZE_SIZE, DEFAULT_MAZE_SIZE, seed));
 
@@ -25,8 +27,8 @@ function App() {
   const t = translations[lang];
 
   const onTick = useCallback(() => {
-    setMouse(prev => SimulatorEngine.stepLeftHand(prev, maze));
-  }, [maze]);
+    setMouse(prev => SimulatorEngine.stepLeftHand(prev, maze, { straightCost, turnCost }));
+  }, [maze, straightCost, turnCost]);
 
   const { 
     isPlaying, speed, setSpeed, step, togglePlay, reset, stepForward, stepBackward 
@@ -54,7 +56,7 @@ function App() {
         const newMaze = importMaz(text);
         setMaze(newMaze);
         handleReset();
-      } catch (err) {
+      } catch {
         alert(t.invalidMaz);
       }
     };
@@ -80,6 +82,8 @@ function App() {
   useEffect(() => {
     if (!maze || isPlaying) return;
 
+    const params = { straightCost, turnCost };
+
     const handleKeyDown = (e: KeyboardEvent) => {
       // Prevent scrolling with arrow keys
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
@@ -88,24 +92,24 @@ function App() {
 
       switch (e.key) {
         case 'ArrowUp':
-          setMouse(prev => SimulatorEngine.moveForward(prev, maze));
+          setMouse(prev => SimulatorEngine.moveForward(prev, maze, params));
           break;
         case 'ArrowLeft':
-          setMouse(prev => SimulatorEngine.turnLeft(prev));
+          setMouse(prev => SimulatorEngine.turnLeft(prev, params));
           break;
         case 'ArrowRight':
-          setMouse(prev => SimulatorEngine.turnRight(prev));
+          setMouse(prev => SimulatorEngine.turnRight(prev, params));
           break;
         case 'ArrowDown':
           // U-Turn logic (Turn Right twice)
-          setMouse(prev => SimulatorEngine.turnRight(SimulatorEngine.turnRight(prev)));
+          setMouse(prev => SimulatorEngine.turnRight(SimulatorEngine.turnRight(prev, params), params));
           break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [maze, isPlaying]);
+  }, [maze, isPlaying, straightCost, turnCost]);
 
   const toggleLang = () => setLang(l => l === 'en' ? 'ja' : 'en');
 
@@ -123,6 +127,7 @@ function App() {
       <div className="controls">
         <div className="simulation-info">
           <span className="step-count">{t.step}: {step}</span>
+          <span className="step-count" style={{marginLeft: '10px'}}>{t.totalCost}: {mouse.totalCost}</span>
           <span className="status-badge" data-playing={isPlaying}>
             {isPlaying ? t.statusRunning : t.statusPaused}
           </span>
@@ -148,6 +153,13 @@ function App() {
 
         <div className="manual-hint">
           ⌨️ {lang === 'ja' ? '矢印キーで自由に機体を操作可能' : 'Playable with Arrow Keys'}
+        </div>
+
+        <div className="speed-control">
+          <label>{t.straightCost}: </label>
+          <input type="number" value={straightCost} onChange={e => setStraightCost(Number(e.target.value))} className="size-select" style={{width: '60px'}} />
+          <label style={{marginLeft: '10px'}}>{t.turnCost}: </label>
+          <input type="number" value={turnCost} onChange={e => setTurnCost(Number(e.target.value))} className="size-select" style={{width: '60px'}} />
         </div>
 
         <div className="speed-control">

@@ -11,6 +11,14 @@ export interface MoveLog {
 }
 
 /**
+ * Machine parameter inputs for cost calculation.
+ */
+export interface MachineParameters {
+  straightCost: number;
+  turnCost: number;
+}
+
+/**
  * State of the mouse in the simulation.
  */
 export interface MouseState {
@@ -18,4 +26,5 @@ export interface MouseState {
   y: number;
   direction: Direction;
   history: MoveLog[];
+  totalCost: number;
 }
