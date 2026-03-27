@@ -15,11 +15,12 @@ function App() {
   const [seed, setSeed] = useState(42);
   const [lang, setLang] = useState<Language>('ja');
   
-  const [maze, setMaze] = useState<MazeState>(() => generateMaze(DEFAULT_MAZE_SIZE, DEFAULT_MAZE_SIZE, seed));
+  const [mazeSize, setMazeSize] = useState<number>(DEFAULT_MAZE_SIZE);
+  const [maze, setMaze] = useState<MazeState>(() => generateMaze(mazeSize, mazeSize, seed));
 
   useEffect(() => {
-    setMaze(generateMaze(DEFAULT_MAZE_SIZE, DEFAULT_MAZE_SIZE, seed));
-  }, [seed]);
+    setMaze(generateMaze(mazeSize, mazeSize, seed));
+  }, [seed, mazeSize]);
 
   const [mouse, setMouse] = useState<MouseState>(SimulatorEngine.getInitialState());
   const t = translations[lang];
@@ -54,7 +55,7 @@ function App() {
         const newMaze = importMaz(text);
         setMaze(newMaze);
         handleReset();
-      } catch (err) {
+      } catch {
         alert(t.invalidMaz);
       }
     };
@@ -148,6 +149,22 @@ function App() {
 
         <div className="manual-hint">
           ⌨️ {lang === 'ja' ? '矢印キーで自由に機体を操作可能' : 'Playable with Arrow Keys'}
+        </div>
+
+        <div className="speed-control">
+          <label>{t.mazeSize}: </label>
+          <select 
+            value={mazeSize} 
+            onChange={(e) => {
+              setMazeSize(Number(e.target.value));
+              handleReset();
+            }}
+            className="size-select"
+          >
+            <option value={8}>{t.mazeSize8}</option>
+            <option value={16}>{t.mazeSize16}</option>
+            <option value={32}>{t.mazeSize32}</option>
+          </select>
         </div>
 
         <div className="speed-control">
