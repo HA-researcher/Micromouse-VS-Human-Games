@@ -1,4 +1,4 @@
-import LZString from 'lz-string';
+import * as LZString from 'lz-string';
 import { Direction } from '../types/maze';
 import type { MoveLog } from '../types/simulator';
 
