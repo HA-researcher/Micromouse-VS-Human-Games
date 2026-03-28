@@ -6,12 +6,13 @@ import type { MouseState } from '../types/simulator';
 interface MazeRendererProps {
   maze: MazeState;
   mouse?: MouseState;
+  ghost?: MouseState;
   cellSize?: number;
   onWallToggle?: (x: number, y: number, direction: Direction) => void;
   isSurvivalMode?: boolean;
 }
 
-const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, cellSize = 30, onWallToggle, isSurvivalMode }) => {
+const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, ghost, cellSize = 30, onWallToggle, isSurvivalMode }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -88,27 +89,23 @@ const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, cellSize = 30,
         }
       }
 
-      // Draw Mouse
-      if (mouse) {
-        const mx = (mouse.x + 0.5) * cellSize;
-        const my = (mouse.y + 0.5) * cellSize;
+      const drawMouseIcon = (m: MouseState, color: string) => {
+        const mx = (m.x + 0.5) * cellSize;
+        const my = (m.y + 0.5) * cellSize;
         const size = cellSize * 0.4;
 
         ctx.save();
         ctx.translate(mx, my);
         
-        // Rotate based on direction
-        // Default (North) index 0
         const rotationMap = {
           [Direction.North]: 0,
           [Direction.East]: Math.PI / 2,
           [Direction.South]: Math.PI,
           [Direction.West]: -Math.PI / 2
         };
-        ctx.rotate(rotationMap[mouse.direction]);
+        ctx.rotate(rotationMap[m.direction]);
 
-        // Mouse Shape (Triangle)
-        ctx.fillStyle = '#FF5252';
+        ctx.fillStyle = color;
         ctx.beginPath();
         ctx.moveTo(0, -size);    // Tip
         ctx.lineTo(-size * 0.8, size * 0.8); // Back left
@@ -116,13 +113,25 @@ const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, cellSize = 30,
         ctx.closePath();
         ctx.fill();
 
-        // Mouse Eye (Direction hint)
         ctx.fillStyle = '#fff';
         ctx.beginPath();
         ctx.arc(0, -size * 0.3, size * 0.15, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.restore();
+      };
+
+      // Draw Ghost
+      if (ghost) {
+        ctx.save();
+        ctx.globalAlpha = 0.5;
+        drawMouseIcon(ghost, '#4FC3F7'); // Light Blue Ghost
+        ctx.restore();
+      }
+
+      // Draw Mouse
+      if (mouse) {
+        drawMouseIcon(mouse, '#FF5252');
       }
 
       // Mark Start (0,0)
@@ -159,7 +168,7 @@ const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, cellSize = 30,
         drawMaze(ctx);
       }
     }
-  }, [maze, mouse, cellSize, isSurvivalMode]);
+  }, [maze, mouse, ghost, cellSize, isSurvivalMode]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!onWallToggle || !canvasRef.current) return;
