@@ -303,7 +303,7 @@ function App() {
           </div>
           {algo1 === 'Custom' && (
             <div style={{height: '250px', marginBottom: '10px', border: '1px solid #444', borderRadius: '4px', overflow: 'hidden'}}>
-              <Editor defaultLanguage="javascript" theme="vs-dark" value={customCode1} onChange={(v) => setCustomCode1(v || '')} options={{minimap: {enabled: false}, fontSize: 13, scrollBeyondLastLine: false}} />
+              <Editor defaultLanguage="javascript" theme="vs-dark" value={customCode1} onChange={(v: string | undefined) => setCustomCode1(v || '')} options={{minimap: {enabled: false}, fontSize: 13, scrollBeyondLastLine: false}} />
             </div>
           )}
           {error1 && <div style={{color: '#ff5252', fontSize: '12px', marginBottom: '10px', padding: '5px', backgroundColor: 'rgba(255,0,0,0.1)'}}>{error1}</div>}
@@ -331,7 +331,7 @@ function App() {
           </div>
           {algo2 === 'Custom' && (
             <div style={{height: '250px', marginBottom: '10px', border: '1px solid #444', borderRadius: '4px', overflow: 'hidden'}}>
-              <Editor defaultLanguage="javascript" theme="vs-dark" value={customCode2} onChange={(v) => setCustomCode2(v || '')} options={{minimap: {enabled: false}, fontSize: 13, scrollBeyondLastLine: false}} />
+              <Editor defaultLanguage="javascript" theme="vs-dark" value={customCode2} onChange={(v: string | undefined) => setCustomCode2(v || '')} options={{minimap: {enabled: false}, fontSize: 13, scrollBeyondLastLine: false}} />
             </div>
           )}
           {error2 && <div style={{color: '#ff5252', fontSize: '12px', marginBottom: '10px', padding: '5px', backgroundColor: 'rgba(255,0,0,0.1)'}}>{error2}</div>}
