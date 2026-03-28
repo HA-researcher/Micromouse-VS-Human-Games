@@ -39,6 +39,7 @@ function App() {
   const [isCampaignMode, setIsCampaignMode] = useState<boolean>(false);
   const [currentStageId, setCurrentStageId] = useState<string | null>(null);
   const [saveData, setSaveData] = useState<SaveData>(() => loadSaveData());
+  const [showGoalMessage, setShowGoalMessage] = useState<boolean>(false);
   
   const [mazeSize, setMazeSize] = useState<number>(DEFAULT_MAZE_SIZE);
   const [maze, setMaze] = useState<MazeState>(() => generateMaze(mazeSize, mazeSize, seed));
@@ -118,6 +119,10 @@ function App() {
         const cost = isAtGoal(next1) ? next1.totalCost : next2.totalCost;
         const newData = saveProgress(currentStageId, cost);
         setSaveData(newData);
+        if (isPlaying) {
+          togglePlay(); // Stop simulation on goal
+          setShowGoalMessage(true);
+        }
       }
     }
 
@@ -178,6 +183,7 @@ function App() {
     if (ghostPath) {
       setGhostMouse(SimulatorEngine.getInitialState());
     }
+    setShowGoalMessage(false);
   }, [reset, ghostPath]);
 
   const handleGenerate = useCallback(() => {
@@ -243,29 +249,42 @@ function App() {
         e.preventDefault();
       }
 
+      const moveInDirection = (targetDir: Direction) => {
+        setMouse1(prev => {
+          let curr = prev;
+          // Rotate until facing targetDir
+          while (curr.direction !== targetDir) {
+            // Find shortest turn
+            const diff = (targetDir - curr.direction + 4) % 4;
+            if (diff === 3) curr = SimulatorEngine.turnLeft(curr, params);
+            else curr = SimulatorEngine.turnRight(curr, params);
+          }
+          // Then move forward
+          return SimulatorEngine.moveForward(curr, maze, params);
+        });
+        
+        setMouse2(prev => {
+          let curr = prev;
+          while (curr.direction !== targetDir) {
+            const diff = (targetDir - curr.direction + 4) % 4;
+            if (diff === 3) curr = SimulatorEngine.turnLeft(curr, params);
+            else curr = SimulatorEngine.turnRight(curr, params);
+          }
+          return SimulatorEngine.moveForward(curr, maze, params);
+        });
+      };
+
       switch (e.key) {
-        case 'ArrowUp':
-          setMouse1(prev => SimulatorEngine.moveForward(prev, maze, params));
-          setMouse2(prev => SimulatorEngine.moveForward(prev, maze, params));
-          break;
-        case 'ArrowLeft':
-          setMouse1(prev => SimulatorEngine.turnLeft(prev, params));
-          setMouse2(prev => SimulatorEngine.turnLeft(prev, params));
-          break;
-        case 'ArrowRight':
-          setMouse1(prev => SimulatorEngine.turnRight(prev, params));
-          setMouse2(prev => SimulatorEngine.turnRight(prev, params));
-          break;
-        case 'ArrowDown':
-          setMouse1(prev => SimulatorEngine.turnRight(SimulatorEngine.turnRight(prev, params), params));
-          setMouse2(prev => SimulatorEngine.turnRight(SimulatorEngine.turnRight(prev, params), params));
-          break;
+        case 'ArrowUp':    moveInDirection(Direction.North); break;
+        case 'ArrowRight': moveInDirection(Direction.East);  break;
+        case 'ArrowDown':  moveInDirection(Direction.South); break;
+        case 'ArrowLeft':  moveInDirection(Direction.West);  break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [maze, isPlaying, straightCost, turnCost]);
+  }, [maze, isPlaying, straightCost, turnCost, togglePlay]);
 
   const handleStageSelect = (stageId: string) => {
     const stage = STAGES.find(s => s.id === stageId);
@@ -290,6 +309,17 @@ function App() {
           {lang === 'en' ? '日本語' : 'English'}
         </button>
       </header>
+      
+      {showGoalMessage && (
+        <div style={{
+          position: 'fixed', top: '20%', left: '50%', transform: 'translateX(-50%)',
+          backgroundColor: 'rgba(255, 215, 0, 0.9)', color: '#000', padding: '20px 40px',
+          borderRadius: '12px', fontSize: '24px', fontWeight: 'bold', zIndex: 1000,
+          boxShadow: '0 0 20px rgba(255, 215, 0, 0.5)', animation: 'bounce 1s infinite'
+        }}>
+          {t.stageClear}
+        </div>
+      )}
       
       <div className="split-screen-container" style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
         <div className="simulator-panel" style={{ flex: '1 1 45%', minWidth: '400px' }}>
