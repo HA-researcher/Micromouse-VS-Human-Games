@@ -159,7 +159,7 @@ const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, cellSize = 30,
         drawMaze(ctx);
       }
     }
-  }, [maze, mouse, cellSize]);
+  }, [maze, mouse, cellSize, isSurvivalMode]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!onWallToggle || !canvasRef.current) return;
