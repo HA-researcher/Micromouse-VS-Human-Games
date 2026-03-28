@@ -26,7 +26,9 @@ export const translations = {
     mazeSize: 'Maze Size',
     mazeSize8: '8x8 (Micro)',
     mazeSize16: '16x16 (Classic)',
-    mazeSize32: '32x32 (Half-size)'
+    mazeSize32: '32x32 (Half-size)',
+    survivalModeOn: '🔦 Survival Mode',
+    survivalModeOff: '💡 Full Vision'
   },
   ja: {
     title: 'マイクロマウス・ビジュアライザ V2',
@@ -53,6 +55,8 @@ export const translations = {
     mazeSize: '迷路サイズ',
     mazeSize8: '8x8 (極小)',
     mazeSize16: '16x16 (クラシック)',
-    mazeSize32: '32x32 (ハーフサイズ)'
+    mazeSize32: '32x32 (ハーフサイズ)',
+    survivalModeOn: '🔦 サバイバルモード',
+    survivalModeOff: '💡 通常モード'
   }
 };
