@@ -12,6 +12,7 @@ import { Direction, type MazeState } from './types/maze';
 import { DEFAULT_MAZE_SIZE } from './utils/constants';
 import Editor from '@monaco-editor/react';
 import { executeCustomAlgorithm } from './utils/customAlgorithmRunner';
+import { serializeRun, deserializeRun } from './utils/urlSerializer';
 
 export type AlgorithmMode = 'LeftHand' | 'RightHand' | 'Custom';
 const DEFAULT_CUSTOM_CODE = `// Custom Algorithm (JavaScript)
@@ -42,6 +43,8 @@ function App() {
 
   const [mouse1, setMouse1] = useState<MouseState>(SimulatorEngine.getInitialState());
   const [mouse2, setMouse2] = useState<MouseState>(SimulatorEngine.getInitialState());
+  const [ghostPath, setGhostPath] = useState<Direction[] | null>(null);
+  const [ghostMouse, setGhostMouse] = useState<MouseState | null>(null);
   const t = translations[lang];
 
   const [algo1, setAlgo1] = useState<AlgorithmMode>('LeftHand');
@@ -53,10 +56,29 @@ function App() {
 
   const mouse1Ref = useRef(mouse1);
   const mouse2Ref = useRef(mouse2);
+  const ghostMouseRef = useRef(ghostMouse);
   useEffect(() => { mouse1Ref.current = mouse1; }, [mouse1]);
   useEffect(() => { mouse2Ref.current = mouse2; }, [mouse2]);
+  useEffect(() => { ghostMouseRef.current = ghostMouse; }, [ghostMouse]);
 
-  const onTick = useCallback(async () => {
+  // Load Ghost from URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ghostData = params.get('g');
+    if (ghostData) {
+      const decoded = deserializeRun(ghostData);
+      if (decoded) {
+        setMazeSize(decoded.width);
+        // We set the seed but generateMaze is in another useEffect, so we might need careful sequencing.
+        // Actually, setMazeSize + setSeed will trigger the maze generation.
+        setSeed(decoded.seed);
+        setGhostPath(decoded.path);
+        setGhostMouse(SimulatorEngine.getInitialState());
+      }
+    }
+  }, []);
+
+  const onTick = useCallback(async (currentStep: number) => {
     const params = { straightCost, turnCost };
     
     const runAlgo = async (algo: AlgorithmMode, mouseData: MouseState, code: string, setError: (e: string|null) => void) => {
@@ -79,7 +101,27 @@ function App() {
 
     const next2 = await runAlgo(algo2, mouse2Ref.current, customCode2, setError2);
     setMouse2(next2);
-  }, [maze, straightCost, turnCost, algo1, algo2, customCode1, customCode2]);
+
+    // Ghost movement
+    if (ghostPath && ghostMouseRef.current) {
+      const stepIdx = currentStep - 1; // currentStep is 1-based, path is 0-based
+      if (stepIdx >= 0 && stepIdx < ghostPath.length) {
+        let g = ghostMouseRef.current;
+        const targetDir = ghostPath[stepIdx];
+        
+        if (g.direction !== targetDir) {
+          // If direction is different, it's a turn.
+          // In reality, a single step might have been a turn OR a move.
+          // Since we only saved one direction per tick, we'll just set it.
+          g = { ...g, direction: targetDir };
+        } else {
+          // If direction is same, it was a move forward.
+          g = SimulatorEngine.moveForward(g, maze, params);
+        }
+        setGhostMouse(g);
+      }
+    }
+  }, [maze, straightCost, turnCost, algo1, algo2, customCode1, customCode2, ghostPath]);
 
   const handleWallToggle = useCallback((x: number, y: number, direction: Direction) => {
     if (!isEditMode) return;
@@ -114,7 +156,10 @@ function App() {
     reset();
     setMouse1(SimulatorEngine.getInitialState());
     setMouse2(SimulatorEngine.getInitialState());
-  }, [reset]);
+    if (ghostPath) {
+      setGhostMouse(SimulatorEngine.getInitialState());
+    }
+  }, [reset, ghostPath]);
 
   const handleGenerate = useCallback(() => {
     const newSeed = Math.floor(Math.random() * 10000);
@@ -153,6 +198,18 @@ function App() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const handleShareRun = () => {
+    if (mouse1.history.length === 0) return;
+    const data = serializeRun(seed, maze.width, maze.height, mouse1.history);
+    const url = new URL(window.location.href);
+    url.searchParams.set('g', data);
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(url.toString()).then(() => {
+      alert(lang === 'ja' ? '共有用URLをクリップボードにコピーしました！' : 'Share URL copied to clipboard!');
+    });
   };
 
   // Manual drive keyboard support (F-10 foundation)
@@ -222,6 +279,7 @@ function App() {
           {maze && <MazeRenderer 
             maze={maze} 
             mouse={mouse1} 
+            ghost={ghostMouse || undefined}
             onWallToggle={isEditMode ? handleWallToggle : undefined} 
             isSurvivalMode={isSurvivalMode}
           />}
@@ -249,6 +307,7 @@ function App() {
           {maze && <MazeRenderer 
             maze={maze} 
             mouse={mouse2} 
+            ghost={ghostMouse || undefined}
             onWallToggle={isEditMode ? handleWallToggle : undefined} 
             isSurvivalMode={isSurvivalMode}
           />}
@@ -271,7 +330,7 @@ function App() {
           <button onClick={togglePlay} className="btn-primary">
             {isPlaying ? t.pause : t.play}
           </button>
-          <button onClick={stepForward} className="btn-secondary" title={t.stepForward} onClickCapture={onTick}>⏭</button>
+          <button onClick={stepForward} className="btn-secondary" title={t.stepForward}>⏭</button>
           <button onClick={handleReset} className="btn-outline">{t.reset}</button>
           <button onClick={handleGenerate} className="btn-outline">{t.generateMaze}</button>
         </div>
@@ -303,6 +362,9 @@ function App() {
             {t.importMaz}
           </label>
           <button onClick={handleExportMaz} className="btn-outline">{t.exportMaz}</button>
+          <button onClick={handleShareRun} className="btn-primary" title="Share your run as a Ghost">
+            {lang === 'ja' ? '🚀 走りを共有' : '🚀 Share Run'}
+          </button>
         </div>
 
         <div className="manual-hint">
