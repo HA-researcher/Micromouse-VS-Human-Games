@@ -13,6 +13,9 @@ import { DEFAULT_MAZE_SIZE } from './utils/constants';
 import Editor from '@monaco-editor/react';
 import { executeCustomAlgorithm } from './utils/customAlgorithmRunner';
 import { serializeRun, deserializeRun } from './utils/urlSerializer';
+import { STAGES } from './utils/stages';
+import { loadSaveData, saveProgress } from './utils/storage';
+import type { SaveData } from './utils/storage';
 
 export type AlgorithmMode = 'LeftHand' | 'RightHand' | 'Custom';
 const DEFAULT_CUSTOM_CODE = `// Custom Algorithm (JavaScript)
@@ -33,6 +36,9 @@ function App() {
   const [isSurvivalMode, setIsSurvivalMode] = useState<boolean>(false);
   const [straightCost, setStraightCost] = useState<number>(1);
   const [turnCost, setTurnCost] = useState<number>(3);
+  const [isCampaignMode, setIsCampaignMode] = useState<boolean>(false);
+  const [currentStageId, setCurrentStageId] = useState<string | null>(null);
+  const [saveData, setSaveData] = useState<SaveData>(() => loadSaveData());
   
   const [mazeSize, setMazeSize] = useState<number>(DEFAULT_MAZE_SIZE);
   const [maze, setMaze] = useState<MazeState>(() => generateMaze(mazeSize, mazeSize, seed));
@@ -101,6 +107,19 @@ function App() {
 
     const next2 = await runAlgo(algo2, mouse2Ref.current, customCode2, setError2);
     setMouse2(next2);
+
+    // Campaign Progress
+    if (isCampaignMode && currentStageId) {
+      const isAtGoal = (m: MouseState) => 
+        m.x >= maze.goalX && m.x < maze.goalX + maze.goalWidth &&
+        m.y >= maze.goalY && m.y < maze.goalY + maze.goalHeight;
+
+      if (isAtGoal(next1) || isAtGoal(next2)) {
+        const cost = isAtGoal(next1) ? next1.totalCost : next2.totalCost;
+        const newData = saveProgress(currentStageId, cost);
+        setSaveData(newData);
+      }
+    }
 
     // Ghost movement
     if (ghostPath && ghostMouseRef.current) {
@@ -248,6 +267,19 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [maze, isPlaying, straightCost, turnCost]);
 
+  const handleStageSelect = (stageId: string) => {
+    const stage = STAGES.find(s => s.id === stageId);
+    if (!stage) return;
+    
+    setIsCampaignMode(true);
+    setCurrentStageId(stage.id);
+    setMazeSize(stage.size);
+    setSeed(stage.seed);
+    setIsEditMode(false);
+    setIsSurvivalMode(false);
+    handleReset();
+  };
+
   const toggleLang = () => setLang(l => l === 'en' ? 'ja' : 'en');
 
   return (
@@ -314,6 +346,39 @@ function App() {
           <div className="simulation-info" style={{marginTop: '10px'}}>
             <span className="step-count">{t.totalCost}: {mouse2.totalCost}</span>
           </div>
+        </div>
+      </div>
+
+      <div className="campaign-panel" style={{marginTop: '20px', padding: '15px', backgroundColor: '#2a2a2a', borderRadius: '8px', border: '1px solid #444'}}>
+        <h3 style={{color: '#FFD700', marginTop: 0, marginBottom: '15px'}}>{t.campaignMode}</h3>
+        <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center'}}>
+          {STAGES.map((stage, index) => {
+            const isUnlocked = index === 0 || saveData.campaign_progress.includes(STAGES[index-1].id);
+            const isCleared = saveData.campaign_progress.includes(stage.id);
+            const best = saveData.best_costs[stage.id];
+            
+            return (
+              <button 
+                key={stage.id}
+                onClick={() => isUnlocked && handleStageSelect(stage.id)}
+                className={currentStageId === stage.id ? "btn-primary" : "btn-outline"}
+                disabled={!isUnlocked}
+                style={{
+                  minWidth: '150px',
+                  opacity: isUnlocked ? 1 : 0.5,
+                  flexDirection: 'column',
+                  height: 'auto',
+                  padding: '10px',
+                  border: currentStageId === stage.id ? '2px solid #FFD700' : undefined
+                }}
+              >
+                <div style={{fontWeight: 'bold'}}>{stage.name[lang]}</div>
+                <div style={{fontSize: '11px', marginTop: '4px'}}>
+                  {isCleared ? `✅ ${t.bestCost}: ${best}` : (isUnlocked ? t.stage : t.locked)}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
       
