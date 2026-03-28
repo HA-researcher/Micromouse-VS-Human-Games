@@ -68,6 +68,9 @@ function App() {
   useEffect(() => { mouse2Ref.current = mouse2; }, [mouse2]);
   useEffect(() => { ghostMouseRef.current = ghostMouse; }, [ghostMouse]);
 
+  // Sync isPlaying to Ref to avoid stale closure in onTick
+  const isPlayingRef = useRef<boolean>(false);
+
   // Load Ghost from URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -86,6 +89,8 @@ function App() {
   }, []);
 
   const onTick = useCallback(async (currentStep: number) => {
+    if (currentStep === 0) return; // Skip logic on reset tick
+
     const params = { straightCost, turnCost };
     
     const runAlgo = async (algo: AlgorithmMode, mouseData: MouseState, code: string, setError: (e: string|null) => void) => {
@@ -119,7 +124,7 @@ function App() {
         const cost = isAtGoal(next1) ? next1.totalCost : next2.totalCost;
         const newData = saveProgress(currentStageId, cost);
         setSaveData(newData);
-        if (isPlaying) {
+        if (isPlayingRef.current) {
           togglePlay(); // Stop simulation on goal
           setShowGoalMessage(true);
         }
@@ -176,12 +181,19 @@ function App() {
     isPlaying, speed, setSpeed, step, togglePlay, reset, stepForward, stepBackward 
   } = useSimulation(onTick, 1);
 
+  // Sync ref
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
   const handleReset = useCallback(() => {
     reset();
     setMouse1(SimulatorEngine.getInitialState());
     setMouse2(SimulatorEngine.getInitialState());
     if (ghostPath) {
       setGhostMouse(SimulatorEngine.getInitialState());
+    } else {
+      setGhostMouse(null);
     }
     setShowGoalMessage(false);
   }, [reset, ghostPath]);
