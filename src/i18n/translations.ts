@@ -28,7 +28,13 @@ export const translations = {
     mazeSize16: '16x16 (Classic)',
     mazeSize32: '32x32 (Half-size)',
     survivalModeOn: '🔦 Survival Mode',
-    survivalModeOff: '💡 Full Vision'
+    survivalModeOff: '💡 Full Vision',
+    campaignMode: '🏆 Campaign Mode',
+    stage: 'Stage',
+    stageClear: '🎉 Stage Cleared!',
+    bestCost: 'Best Cost',
+    locked: '🔒 Locked',
+    nextStage: 'Next Stage'
   },
   ja: {
     title: 'マイクロマウス・ビジュアライザ V2',
@@ -57,6 +63,12 @@ export const translations = {
     mazeSize16: '16x16 (クラシック)',
     mazeSize32: '32x32 (ハーフサイズ)',
     survivalModeOn: '🔦 サバイバルモード',
-    survivalModeOff: '💡 通常モード'
+    survivalModeOff: '💡 通常モード',
+    campaignMode: '🏆 キャンペーンモード',
+    stage: 'ステージ',
+    stageClear: '🎉 ステージクリア！',
+    bestCost: '自己ベスト',
+    locked: '🔒 ロック中',
+    nextStage: '次のステージへ'
   }
 };
