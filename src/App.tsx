@@ -29,6 +29,7 @@ function App() {
   const [seed, setSeed] = useState(42);
   const [lang, setLang] = useState<Language>('ja');
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [isSurvivalMode, setIsSurvivalMode] = useState<boolean>(false);
   const [straightCost, setStraightCost] = useState<number>(1);
   const [turnCost, setTurnCost] = useState<number>(3);
   
@@ -222,6 +223,7 @@ function App() {
             maze={maze} 
             mouse={mouse1} 
             onWallToggle={isEditMode ? handleWallToggle : undefined} 
+            isSurvivalMode={isSurvivalMode}
           />}
           <div className="simulation-info" style={{marginTop: '10px'}}>
             <span className="step-count">{t.totalCost}: {mouse1.totalCost}</span>
@@ -248,6 +250,7 @@ function App() {
             maze={maze} 
             mouse={mouse2} 
             onWallToggle={isEditMode ? handleWallToggle : undefined} 
+            isSurvivalMode={isSurvivalMode}
           />}
           <div className="simulation-info" style={{marginTop: '10px'}}>
             <span className="step-count">{t.totalCost}: {mouse2.totalCost}</span>
@@ -275,7 +278,21 @@ function App() {
 
         <div className="button-group io-controls">
           <button 
-            onClick={() => setIsEditMode(!isEditMode)} 
+            onClick={() => {
+              const newSurvival = !isSurvivalMode;
+              setIsSurvivalMode(newSurvival);
+              if (newSurvival) setIsEditMode(false);
+            }} 
+            className={isSurvivalMode ? "btn-primary" : "btn-outline"}
+          >
+            {isSurvivalMode ? t.survivalModeOff : t.survivalModeOn}
+          </button>
+          <button 
+            onClick={() => {
+              const newEdit = !isEditMode;
+              setIsEditMode(newEdit);
+              if (newEdit) setIsSurvivalMode(false);
+            }} 
             className={isEditMode ? "btn-primary" : "btn-outline"}
             title={lang === 'ja' ? "クリックで壁を編集できます" : "Click walls to toggle them"}
           >

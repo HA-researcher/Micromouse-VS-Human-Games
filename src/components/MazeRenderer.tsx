@@ -8,9 +8,10 @@ interface MazeRendererProps {
   mouse?: MouseState;
   cellSize?: number;
   onWallToggle?: (x: number, y: number, direction: Direction) => void;
+  isSurvivalMode?: boolean;
 }
 
-const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, cellSize = 30, onWallToggle }) => {
+const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, cellSize = 30, onWallToggle, isSurvivalMode }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -134,6 +135,21 @@ const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, cellSize = 30,
       // Mark Goal
       ctx.fillStyle = '#FFD700';
       ctx.fillText('G', (goalX + goalWidth / 2) * cellSize, (goalY + goalHeight / 2) * cellSize);
+
+      // Survival Mode Mask (Flashlight Effect)
+      if (isSurvivalMode && mouse) {
+        ctx.save();
+        const mx = (mouse.x + 0.5) * cellSize;
+        const my = (mouse.y + 0.5) * cellSize;
+        
+        ctx.globalCompositeOperation = 'destination-in';
+        const grad = ctx.createRadialGradient(mx, my, cellSize * 0.8, mx, my, cellSize * 2.5);
+        grad.addColorStop(0, 'rgba(0, 0, 0, 1)');
+        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        ctx.restore();
+      }
     };
 
     const canvas = canvasRef.current;
@@ -143,7 +159,7 @@ const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, cellSize = 30,
         drawMaze(ctx);
       }
     }
-  }, [maze, mouse, cellSize]);
+  }, [maze, mouse, cellSize, isSurvivalMode]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!onWallToggle || !canvasRef.current) return;
