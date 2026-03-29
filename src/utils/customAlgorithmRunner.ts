@@ -1,35 +1,42 @@
 import type { MazeState } from '../types/maze';
 import type { MouseState, MachineParameters } from '../types/simulator';
 
-let activeWorker: Worker | null = null;
+const workers = new Map<string, Worker>();
 let currentMessageId = 0;
 
 export const executeCustomAlgorithm = (
+  instanceId: string,
   mouse: MouseState, 
   maze: MazeState, 
   params: MachineParameters, 
   code: string
 ): Promise<MouseState> => {
   return new Promise((resolve, reject) => {
-    if (!activeWorker) {
-      activeWorker = new Worker(new URL('../workers/algorithmWorker.ts', import.meta.url), { type: 'module' });
+    let worker = workers.get(instanceId);
+    if (!worker) {
+      worker = new Worker(new URL('../workers/algorithmWorker.ts', import.meta.url), { type: 'module' });
+      workers.set(instanceId, worker);
     }
 
     const messageId = ++currentMessageId;
     
     const timeout = setTimeout(() => {
-      // If it takes more than 3s, terminate the worker to kill infinite loops
-      if (activeWorker) {
-        activeWorker.terminate();
-        activeWorker = null;
+      // If it takes more than 3s, terminate the specific worker to kill infinite loops
+      const w = workers.get(instanceId);
+      if (w) {
+        w.terminate();
+        workers.delete(instanceId);
       }
-      reject(new Error('Algorithm execution timed out (3000ms). Infinite loop detected.'));
+      reject(new Error(`Algorithm execution timed out (3000ms) for ${instanceId}. Infinite loop detected.`));
     }, 3000);
 
     const onMessage = (e: MessageEvent) => {
       if (e.data.id === messageId) {
         clearTimeout(timeout);
-        activeWorker!.removeEventListener('message', onMessage);
+        const w = workers.get(instanceId);
+        if (w) {
+          w.removeEventListener('message', onMessage);
+        }
         
         if (e.data.success) {
           resolve(e.data.result);
@@ -39,7 +46,7 @@ export const executeCustomAlgorithm = (
       }
     };
 
-    activeWorker.addEventListener('message', onMessage);
-    activeWorker.postMessage({ id: messageId, code, mouse, maze, params });
+    worker.addEventListener('message', onMessage);
+    worker.postMessage({ id: messageId, code, mouse, maze, params });
   });
 };

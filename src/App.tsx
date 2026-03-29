@@ -98,7 +98,8 @@ function App() {
         if (algo === 'LeftHand') return SimulatorEngine.stepLeftHand(mouseData, maze, params);
         if (algo === 'RightHand') return SimulatorEngine.stepRightHand(mouseData, maze, params);
         if (algo === 'Custom') {
-          const res = await executeCustomAlgorithm(mouseData, maze, params, code);
+          const instanceId = mouseData === mouse1Ref.current ? 'mouse1' : 'mouse2';
+          const res = await executeCustomAlgorithm(instanceId, mouseData, maze, params, code);
           setError(null);
           return res;
         }
