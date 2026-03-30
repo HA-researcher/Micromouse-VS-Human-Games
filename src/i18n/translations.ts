@@ -34,7 +34,11 @@ export const translations = {
     stageClear: '🎉 Stage Cleared!',
     bestCost: 'Best Cost',
     locked: '🔒 Locked',
-    nextStage: 'Next Stage'
+    nextStage: 'Next Stage',
+    steps: 'Steps',
+    turns: 'Turns',
+    efficiency: 'Efficiency',
+    optimalCost: 'Optimal Cost'
   },
   ja: {
     title: 'マイクロマウス・ビジュアライザ V2',
@@ -69,6 +73,10 @@ export const translations = {
     stageClear: '🎉 ステージクリア！',
     bestCost: '自己ベスト',
     locked: '🔒 ロック中',
-    nextStage: '次のステージへ'
+    nextStage: '次のステージへ',
+    steps: '歩数',
+    turns: 'ターン数',
+    efficiency: '効率',
+    optimalCost: '理論最短コスト'
   }
 };
