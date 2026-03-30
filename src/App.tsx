@@ -17,6 +17,58 @@ import { STAGES } from './utils/stages';
 import { loadSaveData, saveProgress } from './utils/storage';
 import type { SaveData } from './utils/storage';
 
+const MONACO_EXTRA_LIBS = `
+  enum Direction { North = 0, East = 1, South = 2, West = 3 }
+  interface MazeState {
+    width: number;
+    height: number;
+    walls: Uint8Array;
+    discovered: Uint8Array;
+    goalX: number;
+    goalY: number;
+    goalWidth: number;
+    goalHeight: number;
+  }
+  interface MoveLog {
+    x: number;
+    y: number;
+    direction: Direction;
+    timestamp: number;
+  }
+  interface MachineParameters {
+    straightCost: number;
+    turnCost: number;
+  }
+  interface MouseState {
+    x: number;
+    y: number;
+    direction: Direction;
+    history: MoveLog[];
+    totalCost: number;
+  }
+  
+  /** Current state of the mouse. */
+  declare const mouse: MouseState;
+  /** Current state of the maze. */
+  declare const maze: MazeState;
+  /** Direction constants. */
+  declare const Direction: {
+    North: number;
+    East: number;
+    South: number;
+    West: number;
+  };
+  /** Machine cost parameters. */
+  declare const params: MachineParameters;
+  /** Simulation engine methods. */
+  declare const SimulatorEngine: {
+    canMoveForward: (mouse: MouseState, maze: MazeState) => boolean;
+    moveForward: (mouse: MouseState, maze: MazeState, params?: MachineParameters) => MouseState;
+    turnLeft: (mouse: MouseState, params?: MachineParameters) => MouseState;
+    turnRight: (mouse: MouseState, params?: MachineParameters) => MouseState;
+  };
+`;
+
 export type AlgorithmMode = 'LeftHand' | 'RightHand' | 'Custom';
 const DEFAULT_CUSTOM_CODE = `// Custom Algorithm (JavaScript)
 // Available globally: mouse, maze, Direction, SimulatorEngine, params
@@ -312,6 +364,14 @@ function App() {
     handleReset();
   };
 
+  const handleEditorBeforeMount = (monaco: any) => {
+    monaco.languages.typescript.typescriptDefaults.addExtraLib(MONACO_EXTRA_LIBS, 'ts:lib/maze_api.d.ts');
+    monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+      target: monaco.languages.typescript.ScriptTarget.ESNext,
+      allowNonTsExtensions: true,
+    });
+  };
+
   const toggleLang = () => setLang(l => l === 'en' ? 'ja' : 'en');
 
   return (
@@ -346,7 +406,14 @@ function App() {
           </div>
           {algo1 === 'Custom' && (
             <div style={{height: '250px', marginBottom: '10px', border: '1px solid #444', borderRadius: '4px', overflow: 'hidden'}}>
-              <Editor defaultLanguage="javascript" theme="vs-dark" value={customCode1} onChange={(v: string | undefined) => setCustomCode1(v || '')} options={{minimap: {enabled: false}, fontSize: 13, scrollBeyondLastLine: false}} />
+              <Editor 
+                defaultLanguage="javascript" 
+                theme="vs-dark" 
+                value={customCode1} 
+                onChange={(v: string | undefined) => setCustomCode1(v || '')} 
+                options={{minimap: {enabled: false}, fontSize: 13, scrollBeyondLastLine: false}} 
+                beforeMount={handleEditorBeforeMount}
+              />
             </div>
           )}
           {error1 && <div style={{color: '#ff5252', fontSize: '12px', marginBottom: '10px', padding: '5px', backgroundColor: 'rgba(255,0,0,0.1)'}}>{error1}</div>}
@@ -374,7 +441,14 @@ function App() {
           </div>
           {algo2 === 'Custom' && (
             <div style={{height: '250px', marginBottom: '10px', border: '1px solid #444', borderRadius: '4px', overflow: 'hidden'}}>
-              <Editor defaultLanguage="javascript" theme="vs-dark" value={customCode2} onChange={(v: string | undefined) => setCustomCode2(v || '')} options={{minimap: {enabled: false}, fontSize: 13, scrollBeyondLastLine: false}} />
+              <Editor 
+                defaultLanguage="javascript" 
+                theme="vs-dark" 
+                value={customCode2} 
+                onChange={(v: string | undefined) => setCustomCode2(v || '')} 
+                options={{minimap: {enabled: false}, fontSize: 13, scrollBeyondLastLine: false}} 
+                beforeMount={handleEditorBeforeMount}
+              />
             </div>
           )}
           {error2 && <div style={{color: '#ff5252', fontSize: '12px', marginBottom: '10px', padding: '5px', backgroundColor: 'rgba(255,0,0,0.1)'}}>{error2}</div>}
