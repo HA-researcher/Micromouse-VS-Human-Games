@@ -10,7 +10,7 @@ export const executeCustomAlgorithm = (
   maze: MazeState, 
   params: MachineParameters, 
   code: string
-): Promise<MouseState> => {
+): Promise<{ result: MouseState, duration: number }> => {
   return new Promise((resolve, reject) => {
     let worker = workers.get(instanceId);
     if (!worker) {
@@ -39,7 +39,7 @@ export const executeCustomAlgorithm = (
         }
         
         if (e.data.success) {
-          resolve(e.data.result);
+          resolve({ result: e.data.result, duration: e.data.duration });
         } else {
           reject(new Error(e.data.error));
         }

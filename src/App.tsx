@@ -112,6 +112,8 @@ function App() {
   const [customCode2, setCustomCode2] = useState(DEFAULT_CUSTOM_CODE);
   const [error1, setError1] = useState<string | null>(null);
   const [error2, setError2] = useState<string | null>(null);
+  const [duration1, setDuration1] = useState<number | null>(null);
+  const [duration2, setDuration2] = useState<number | null>(null);
 
   const mouse1Ref = useRef(mouse1);
   const mouse2Ref = useRef(mouse2);
@@ -145,26 +147,34 @@ function App() {
 
     const params = { straightCost, turnCost };
     
-    const runAlgo = async (algo: AlgorithmMode, mouseData: MouseState, code: string, setError: (e: string|null) => void) => {
+    const runAlgo = async (algo: AlgorithmMode, mouseData: MouseState, code: string, setError: (e: string|null) => void, setDuration: (d: number|null) => void) => {
       try {
-        if (algo === 'LeftHand') return SimulatorEngine.stepLeftHand(mouseData, maze, params);
-        if (algo === 'RightHand') return SimulatorEngine.stepRightHand(mouseData, maze, params);
+        if (algo === 'LeftHand') {
+          setDuration(null);
+          return SimulatorEngine.stepLeftHand(mouseData, maze, params);
+        }
+        if (algo === 'RightHand') {
+          setDuration(null);
+          return SimulatorEngine.stepRightHand(mouseData, maze, params);
+        }
         if (algo === 'Custom') {
           const instanceId = mouseData === mouse1Ref.current ? 'mouse1' : 'mouse2';
-          const res = await executeCustomAlgorithm(instanceId, mouseData, maze, params, code);
+          const { result, duration } = await executeCustomAlgorithm(instanceId, mouseData, maze, params, code);
           setError(null);
-          return res;
+          setDuration(duration);
+          return result;
         }
       } catch (e) {
         setError((e as Error).message || String(e));
+        setDuration(null);
       }
       return mouseData; // on error, return unchanged mouse
     };
 
-    const next1 = await runAlgo(algo1, mouse1Ref.current, customCode1, setError1);
+    const next1 = await runAlgo(algo1, mouse1Ref.current, customCode1, setError1, setDuration1);
     setMouse1(next1);
 
-    const next2 = await runAlgo(algo2, mouse2Ref.current, customCode2, setError2);
+    const next2 = await runAlgo(algo2, mouse2Ref.current, customCode2, setError2, setDuration2);
     setMouse2(next2);
 
     // Campaign Progress
@@ -243,6 +253,8 @@ function App() {
     reset();
     setMouse1(SimulatorEngine.getInitialState());
     setMouse2(SimulatorEngine.getInitialState());
+    setDuration1(null);
+    setDuration2(null);
     if (ghostPath) {
       setGhostMouse(SimulatorEngine.getInitialState());
     } else {
@@ -425,8 +437,9 @@ function App() {
             onWallToggle={isEditMode ? handleWallToggle : undefined} 
             isSurvivalMode={isSurvivalMode}
           />}
-          <div className="simulation-info" style={{marginTop: '10px'}}>
+          <div className="simulation-info" style={{marginTop: '10px', display: 'flex', justifyContent: 'space-between'}}>
             <span className="step-count">{t.totalCost}: {mouse1.totalCost}</span>
+            {duration1 !== null && <span style={{fontSize: '12px', color: '#888'}}>⚡ {duration1.toFixed(2)}ms</span>}
           </div>
         </div>
         
@@ -460,8 +473,9 @@ function App() {
             onWallToggle={isEditMode ? handleWallToggle : undefined} 
             isSurvivalMode={isSurvivalMode}
           />}
-          <div className="simulation-info" style={{marginTop: '10px'}}>
+          <div className="simulation-info" style={{marginTop: '10px', display: 'flex', justifyContent: 'space-between'}}>
             <span className="step-count">{t.totalCost}: {mouse2.totalCost}</span>
+            {duration2 !== null && <span style={{fontSize: '12px', color: '#888'}}>⚡ {duration2.toFixed(2)}ms</span>}
           </div>
         </div>
       </div>
