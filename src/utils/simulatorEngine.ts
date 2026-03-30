@@ -47,7 +47,13 @@ export const SimulatorEngine = {
     else if (mouse.direction === Direction.West) x -= 1;
 
     const costDelta = params ? params.straightCost : 1;
-    const newMouse = { ...mouse, x, y, totalCost: mouse.totalCost + costDelta };
+    const newMouse = { 
+      ...mouse, 
+      x, 
+      y, 
+      totalCost: mouse.totalCost + costDelta,
+      stepCount: mouse.stepCount + 1
+    };
     newMouse.history = [
       ...mouse.history,
       { x, y, direction: mouse.direction, timestamp: Date.now() }
@@ -65,6 +71,7 @@ export const SimulatorEngine = {
       ...mouse, 
       direction: nextDir as Direction,
       totalCost: mouse.totalCost + costDelta,
+      turnCount: mouse.turnCount + 1,
       history: [
         ...mouse.history,
         { x: mouse.x, y: mouse.y, direction: nextDir as Direction, timestamp: Date.now() }
@@ -82,6 +89,7 @@ export const SimulatorEngine = {
       ...mouse, 
       direction: nextDir as Direction,
       totalCost: mouse.totalCost + costDelta,
+      turnCount: mouse.turnCount + 1,
       history: [
         ...mouse.history,
         { x: mouse.x, y: mouse.y, direction: nextDir as Direction, timestamp: Date.now() }
@@ -147,6 +155,8 @@ export const SimulatorEngine = {
     y: 0,
     direction: Direction.North,
     history: [{ x: 0, y: 0, direction: Direction.North, timestamp: Date.now() }],
-    totalCost: 0
+    totalCost: 0,
+    stepCount: 0,
+    turnCount: 0
   })
 };

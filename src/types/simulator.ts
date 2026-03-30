@@ -27,4 +27,6 @@ export interface MouseState {
   direction: Direction;
   history: MoveLog[];
   totalCost: number;
+  stepCount: number;
+  turnCount: number;
 }
