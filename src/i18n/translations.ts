@@ -40,7 +40,9 @@ export const translations = {
     efficiency: 'Efficiency',
     optimalCost: 'Optimal Cost',
     view2D: '2D View',
-    view3D: '3D View'
+    view3D: '3D View',
+    faceControlOn: '👤 Face Control ON',
+    faceControlOff: '📷 Enable Face Control'
   },
   ja: {
     title: 'マイクロマウス・ビジュアライザ V2',
@@ -81,6 +83,8 @@ export const translations = {
     efficiency: '効率',
     optimalCost: '理論最短コスト',
     view2D: '2D表示',
-    view3D: '3D表示'
+    view3D: '3D表示',
+    faceControlOn: '👤 顔認識操作 ON',
+    faceControlOff: '🎥 顔認識操作を有効化'
   }
 };
