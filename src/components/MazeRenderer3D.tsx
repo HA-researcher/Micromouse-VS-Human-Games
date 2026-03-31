@@ -20,7 +20,7 @@ const MouseModel: React.FC<{ mouse: MouseState; color: string; isGhost?: boolean
   const meshRef = useRef<THREE.Group>(null);
   
   // Interpolate position and rotation
-  useFrame((_, delta) => {
+  useFrame((_state: any, delta: number) => {
     if (!meshRef.current) return;
     
     const targetX = mouse.x + 0.5;
@@ -117,7 +117,7 @@ const Walls: React.FC<{ maze: MazeState }> = ({ maze }) => {
 const FPSCamera: React.FC<{ mouse: MouseState }> = ({ mouse }) => {
   const cameraRef = useRef<THREE.PerspectiveCamera>(null);
 
-  useFrame((_, delta) => {
+  useFrame((_state: any, delta: number) => {
     if (!cameraRef.current) return;
     
     // FPS View: Positioned slightly behind the mouse head
