@@ -3,6 +3,7 @@ import './App.css';
 import { generateMaze } from './utils/mazeGenerator';
 import { importMaz, exportMaz } from './utils/mazParser';
 import MazeRenderer from './components/MazeRenderer';
+import MazeRenderer3D from './components/MazeRenderer3D';
 import { useSimulation } from './hooks/useSimulation';
 import { translations } from './i18n/translations';
 import type { Language } from './i18n/translations';
@@ -120,6 +121,8 @@ function App() {
   const [duration1, setDuration1] = useState<number | null>(null);
   const [duration2, setDuration2] = useState<number | null>(null);
   const [optimalCost, setOptimalCost] = useState<number>(0);
+  const [viewMode1, setViewMode1] = useState<'2D' | '3D'>('2D');
+  const [viewMode2, setViewMode2] = useState<'2D' | '3D'>('2D');
 
   const mouse1Ref = useRef(mouse1);
   const mouse2Ref = useRef(mouse2);
@@ -421,6 +424,15 @@ function App() {
               <option value="RightHand">Right-Hand</option>
               <option value="Custom">Custom (JS)</option>
             </select>
+            <div className="button-group" style={{marginLeft: '10px'}}>
+              <button 
+                onClick={() => setViewMode1(v => v === '2D' ? '3D' : '2D')} 
+                className="btn-outline" 
+                style={{padding: '2px 8px', fontSize: '11px'}}
+              >
+                {viewMode1 === '2D' ? t.view3D : t.view2D}
+              </button>
+            </div>
           </div>
           {algo1 === 'Custom' && (
             <div style={{height: '250px', marginBottom: '10px', border: '1px solid #444', borderRadius: '4px', overflow: 'hidden'}}>
@@ -436,13 +448,22 @@ function App() {
           )}
           {error1 && <div style={{color: '#ff5252', fontSize: '12px', marginBottom: '10px', padding: '5px', backgroundColor: 'rgba(255,0,0,0.1)'}}>{error1}</div>}
           
-          {maze && <MazeRenderer 
-            maze={maze} 
-            mouse={mouse1} 
-            ghost={ghostMouse || undefined}
-            onWallToggle={isEditMode ? handleWallToggle : undefined} 
-            isSurvivalMode={isSurvivalMode}
-          />}
+          {maze && (viewMode1 === '2D' ? (
+            <MazeRenderer 
+              maze={maze} 
+              mouse={mouse1} 
+              ghost={ghostMouse || undefined}
+              onWallToggle={isEditMode ? handleWallToggle : undefined} 
+              isSurvivalMode={isSurvivalMode}
+            />
+          ) : (
+            <MazeRenderer3D 
+              maze={maze} 
+              mouse={mouse1} 
+              ghost={ghostMouse || undefined}
+              isSurvivalMode={isSurvivalMode}
+            />
+          ))}
           <div className="simulation-info" style={{marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '5px'}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
               <span className="step-count"><strong>{t.totalCost}: {mouse1.totalCost}</strong></span>
@@ -466,6 +487,15 @@ function App() {
               <option value="RightHand">Right-Hand</option>
               <option value="Custom">Custom (JS)</option>
             </select>
+            <div className="button-group" style={{marginLeft: '10px'}}>
+              <button 
+                onClick={() => setViewMode2(v => v === '2D' ? '3D' : '2D')} 
+                className="btn-outline" 
+                style={{padding: '2px 8px', fontSize: '11px'}}
+              >
+                {viewMode2 === '2D' ? t.view3D : t.view2D}
+              </button>
+            </div>
           </div>
           {algo2 === 'Custom' && (
             <div style={{height: '250px', marginBottom: '10px', border: '1px solid #444', borderRadius: '4px', overflow: 'hidden'}}>
@@ -481,13 +511,22 @@ function App() {
           )}
           {error2 && <div style={{color: '#ff5252', fontSize: '12px', marginBottom: '10px', padding: '5px', backgroundColor: 'rgba(255,0,0,0.1)'}}>{error2}</div>}
           
-          {maze && <MazeRenderer 
-            maze={maze} 
-            mouse={mouse2} 
-            ghost={ghostMouse || undefined}
-            onWallToggle={isEditMode ? handleWallToggle : undefined} 
-            isSurvivalMode={isSurvivalMode}
-          />}
+          {maze && (viewMode2 === '2D' ? (
+            <MazeRenderer 
+              maze={maze} 
+              mouse={mouse2} 
+              ghost={ghostMouse || undefined}
+              onWallToggle={isEditMode ? handleWallToggle : undefined} 
+              isSurvivalMode={isSurvivalMode}
+            />
+          ) : (
+            <MazeRenderer3D 
+              maze={maze} 
+              mouse={mouse2} 
+              ghost={ghostMouse || undefined}
+              isSurvivalMode={isSurvivalMode}
+            />
+          ))}
           <div className="simulation-info" style={{marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '5px'}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
               <span className="step-count"><strong>{t.totalCost}: {mouse2.totalCost}</strong></span>
