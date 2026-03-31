@@ -187,7 +187,9 @@ function App() {
       } catch (e) {
         setError((e as Error).message || String(e));
         setDuration(null);
+        return mouseData;
       }
+      return mouseData;
     }
 
     // Step 1: Update Discovery for both mice
@@ -201,13 +203,6 @@ function App() {
         
         // Sync neighbors
         const w = currMaze.walls[idx];
-        const sync = (nx: number, ny: number, nd: Direction) => {
-          if (nx >= 0 && nx < currMaze.width && ny >= 0 && ny < currMaze.height) {
-            const nIdx = ny * currMaze.width + nx;
-            newD[nIdx] |= (w & (1 << (nd === Direction.North ? Direction.North : nd === Direction.South ? Direction.South : nd === Direction.East ? Direction.East : Direction.West))) ? (1 << (nd === Direction.North ? Direction.South : nd === Direction.South ? Direction.North : nd === Direction.East ? Direction.West : Direction.East)) : 0;
-            // Wait, simpler logic:
-          }
-        };
         // Let's just do it manually for clarity
         if (m.y > 0) {
           if (w & (1 << Direction.North)) newD[(m.y-1)*currMaze.width + m.x] |= (1 << Direction.South);
@@ -234,10 +229,10 @@ function App() {
     });
 
     const next1 = await runAlgo(algo1, mouse1Ref.current, customCode1, setError1, setDuration1);
-    setMouse1(next1);
-
     const next2 = await runAlgo(algo2, mouse2Ref.current, customCode2, setError2, setDuration2);
-    setMouse2(next2);
+
+    if (next1) setMouse1(next1);
+    if (next2) setMouse2(next2);
 
     // Campaign Progress
     if (isCampaignMode && currentStageId) {
@@ -245,8 +240,8 @@ function App() {
         m.x >= maze.goalX && m.x < maze.goalX + maze.goalWidth &&
         m.y >= maze.goalY && m.y < maze.goalY + maze.goalHeight;
 
-      if (isAtGoal(next1) || isAtGoal(next2)) {
-        const cost = isAtGoal(next1) ? next1.totalCost : next2.totalCost;
+      if ((next1 && isAtGoal(next1)) || (next2 && isAtGoal(next2))) {
+        const cost = (next1 && isAtGoal(next1)) ? next1.totalCost : (next2 ? next2.totalCost : 0);
         const newData = saveProgress(currentStageId, cost);
         setSaveData(newData);
         if (isPlayingRef.current) {
@@ -376,6 +371,18 @@ function App() {
     });
   };
 
+  const moveStep = useCallback((curr: MouseState, targetDir: Direction) => {
+    let next = curr;
+    // Rotate until facing targetDir
+    while (next.direction !== targetDir) {
+      const diff = (targetDir - next.direction + 4) % 4;
+      if (diff === 3) next = SimulatorEngine.turnLeft(next, { straightCost, turnCost });
+      else next = SimulatorEngine.turnRight(next, { straightCost, turnCost });
+    }
+    // Then move forward
+    return SimulatorEngine.moveForward(next, maze, { straightCost, turnCost });
+  }, [maze, straightCost, turnCost]);
+
   // Manual drive keyboard support (F-10 foundation)
   useEffect(() => {
     if (!maze || isPlaying) return;
@@ -423,18 +430,6 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [maze, isPlaying, viewMode1, viewMode2, moveStep]);
-
-  const moveStep = useCallback((curr: MouseState, targetDir: Direction) => {
-    let next = curr;
-    // Rotate until facing targetDir
-    while (next.direction !== targetDir) {
-      const diff = (targetDir - next.direction + 4) % 4;
-      if (diff === 3) next = SimulatorEngine.turnLeft(next, { straightCost, turnCost });
-      else next = SimulatorEngine.turnRight(next, { straightCost, turnCost });
-    }
-    // Then move forward
-    return SimulatorEngine.moveForward(next, maze, { straightCost, turnCost });
-  }, [maze, straightCost, turnCost]);
 
   // Face Control Loop
   useEffect(() => {

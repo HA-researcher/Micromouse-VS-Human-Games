@@ -200,7 +200,6 @@ export const SimulatorEngine = {
 
   stepFloodFill: (mouse: MouseState, maze: MazeState, params?: MachineParameters): MouseState => {
     const distMap = SimulatorEngine.calculateDistanceMap(maze, true);
-    const { x, y, width, discovered } = maze; // Wait, maze doesn't have x,y. Mouse does.
     const currentWalls = maze.discovered[mouse.y * maze.width + mouse.x];
 
     const moves = [
