@@ -42,7 +42,9 @@ export const translations = {
     view2D: '2D View',
     view3D: '3D View',
     faceControlOn: '👤 Face Control ON',
-    faceControlOff: '📷 Enable Face Control'
+    faceControlOff: '📷 Enable Face Control',
+    floodFill: 'Adachi (Flood Fill)',
+    centripetal: 'Centripetal Method'
   },
   ja: {
     title: 'マイクロマウス・ビジュアライザ V2',
@@ -85,6 +87,8 @@ export const translations = {
     view2D: '2D表示',
     view3D: '3D表示',
     faceControlOn: '👤 顔認識操作 ON',
-    faceControlOff: '🎥 顔認識操作を有効化'
+    faceControlOff: '🎥 顔認識操作を有効化',
+    floodFill: '足立法',
+    centripetal: '求心法'
   }
 };
