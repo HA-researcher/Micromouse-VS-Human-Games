@@ -45,6 +45,8 @@ const MONACO_EXTRA_LIBS = `
     direction: Direction;
     history: MoveLog[];
     totalCost: number;
+    stepCount: number;
+    turnCount: number;
   }
   
   /** Current state of the mouse. */
