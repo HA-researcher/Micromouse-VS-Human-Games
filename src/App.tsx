@@ -330,47 +330,60 @@ function App() {
     const params = { straightCost, turnCost };
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't capture keys if an input, textarea, or the Monaco editor is focused
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' || 
+        target.tagName === 'TEXTAREA' || 
+        target.closest('.monaco-editor')
+      ) {
+        return;
+      }
+
       // Prevent scrolling with arrow keys
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         e.preventDefault();
       }
 
-      const moveInDirection = (targetDir: Direction) => {
-        setMouse1(prev => {
-          let curr = prev;
-          // Rotate until facing targetDir
-          while (curr.direction !== targetDir) {
-            // Find shortest turn
-            const diff = (targetDir - curr.direction + 4) % 4;
-            if (diff === 3) curr = SimulatorEngine.turnLeft(curr, params);
-            else curr = SimulatorEngine.turnRight(curr, params);
-          }
-          // Then move forward
-          return SimulatorEngine.moveForward(curr, maze, params);
-        });
-        
-        setMouse2(prev => {
-          let curr = prev;
-          while (curr.direction !== targetDir) {
-            const diff = (targetDir - curr.direction + 4) % 4;
-            if (diff === 3) curr = SimulatorEngine.turnLeft(curr, params);
-            else curr = SimulatorEngine.turnRight(curr, params);
-          }
-          return SimulatorEngine.moveForward(curr, maze, params);
-        });
+      const moveStep = (curr: MouseState, targetDir: Direction) => {
+        let next = curr;
+        // Rotate until facing targetDir
+        while (next.direction !== targetDir) {
+          const diff = (targetDir - next.direction + 4) % 4;
+          if (diff === 3) next = SimulatorEngine.turnLeft(next, params);
+          else next = SimulatorEngine.turnRight(next, params);
+        }
+        // Then move forward
+        return SimulatorEngine.moveForward(next, maze, params);
       };
 
-      switch (e.key) {
-        case 'ArrowUp':    moveInDirection(Direction.North); break;
-        case 'ArrowRight': moveInDirection(Direction.East);  break;
-        case 'ArrowDown':  moveInDirection(Direction.South); break;
-        case 'ArrowLeft':  moveInDirection(Direction.West);  break;
+      const getTargetDirByView = (curr: MouseState, key: string, is3D: boolean) => {
+        if (is3D) {
+          // Relative movement in 3D: Up=Forward, Right=Right, Down=Back, Left=Left
+          const offset = 
+            key === 'ArrowUp' ? 0 : 
+            key === 'ArrowRight' ? 1 : 
+            key === 'ArrowDown' ? 2 : 
+            3; // ArrowLeft
+          return (curr.direction + offset) % 4 as Direction;
+        } else {
+          // Absolute movement in 2D: Up=North, Right=East, Down=South, Left=West
+          if (key === 'ArrowUp') return Direction.North;
+          if (key === 'ArrowRight') return Direction.East;
+          if (key === 'ArrowDown') return Direction.South;
+          return Direction.West;
+        }
+      };
+
+      if (['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].includes(e.key)) {
+        setMouse1(prev => moveStep(prev, getTargetDirByView(prev, e.key, viewMode1 === '3D')));
+        setMouse2(prev => moveStep(prev, getTargetDirByView(prev, e.key, viewMode2 === '3D')));
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [maze, isPlaying, straightCost, turnCost, togglePlay]);
+  }, [maze, isPlaying, straightCost, turnCost, viewMode1, viewMode2]);
 
   const handleStageSelect = (stageId: string) => {
     const stage = STAGES.find(s => s.id === stageId);
