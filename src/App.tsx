@@ -74,7 +74,7 @@ const MONACO_EXTRA_LIBS = `
   };
 `;
 
-export type AlgorithmMode = 'LeftHand' | 'RightHand' | 'Custom';
+export type AlgorithmMode = 'LeftHand' | 'RightHand' | 'FloodFill' | 'Centripetal' | 'Custom';
 const DEFAULT_CUSTOM_CODE = `// Custom Algorithm (JavaScript)
 // Available globally: mouse, maze, Direction, SimulatorEngine, params
 // Must return a new MouseState object.
@@ -169,6 +169,14 @@ function App() {
           setDuration(null);
           return SimulatorEngine.stepRightHand(mouseData, maze, params);
         }
+        if (algo === 'FloodFill') {
+          setDuration(null);
+          return SimulatorEngine.stepFloodFill(mouseData, maze, params);
+        }
+        if (algo === 'Centripetal') {
+          setDuration(null);
+          return SimulatorEngine.stepCentripetal(mouseData, maze, params);
+        }
         if (algo === 'Custom') {
           const instanceId = mouseData === mouse1Ref.current ? 'mouse1' : 'mouse2';
           const { result, duration } = await executeCustomAlgorithm(instanceId, mouseData, maze, params, code);
@@ -180,8 +188,50 @@ function App() {
         setError((e as Error).message || String(e));
         setDuration(null);
       }
-      return mouseData; // on error, return unchanged mouse
-    };
+    }
+
+    // Step 1: Update Discovery for both mice
+    setMaze(prev => {
+      let nextMaze = prev;
+      const updateCell = (m: MouseState, currMaze: MazeState): MazeState => {
+        const idx = m.y * currMaze.width + m.x;
+        if (currMaze.discovered[idx] === currMaze.walls[idx]) return currMaze;
+        const newD = new Uint8Array(currMaze.discovered);
+        newD[idx] = currMaze.walls[idx];
+        
+        // Sync neighbors
+        const w = currMaze.walls[idx];
+        const sync = (nx: number, ny: number, nd: Direction) => {
+          if (nx >= 0 && nx < currMaze.width && ny >= 0 && ny < currMaze.height) {
+            const nIdx = ny * currMaze.width + nx;
+            newD[nIdx] |= (w & (1 << (nd === Direction.North ? Direction.North : nd === Direction.South ? Direction.South : nd === Direction.East ? Direction.East : Direction.West))) ? (1 << (nd === Direction.North ? Direction.South : nd === Direction.South ? Direction.North : nd === Direction.East ? Direction.West : Direction.East)) : 0;
+            // Wait, simpler logic:
+          }
+        };
+        // Let's just do it manually for clarity
+        if (m.y > 0) {
+          if (w & (1 << Direction.North)) newD[(m.y-1)*currMaze.width + m.x] |= (1 << Direction.South);
+          else newD[(m.y-1)*currMaze.width + m.x] &= ~(1 << Direction.South);
+        }
+        if (m.x < currMaze.width - 1) {
+          if (w & (1 << Direction.East)) newD[m.y*currMaze.width + (m.x+1)] |= (1 << Direction.West);
+          else newD[m.y*currMaze.width + (m.x+1)] &= ~(1 << Direction.West);
+        }
+        if (m.y < currMaze.height - 1) {
+          if (w & (1 << Direction.South)) newD[(m.y+1)*currMaze.width + m.x] |= (1 << Direction.North);
+          else newD[(m.y+1)*currMaze.width + m.x] &= ~(1 << Direction.North);
+        }
+        if (m.x > 0) {
+          if (w & (1 << Direction.West)) newD[m.y*currMaze.width + (m.x-1)] |= (1 << Direction.East);
+          else newD[m.y*currMaze.width + (m.x-1)] &= ~(1 << Direction.East);
+        }
+
+        return { ...currMaze, discovered: newD };
+      };
+      nextMaze = updateCell(mouse1Ref.current, nextMaze);
+      nextMaze = updateCell(mouse2Ref.current, nextMaze);
+      return nextMaze;
+    });
 
     const next1 = await runAlgo(algo1, mouse1Ref.current, customCode1, setError1, setDuration1);
     setMouse1(next1);
@@ -462,6 +512,8 @@ function App() {
             <select value={algo1} onChange={(e) => setAlgo1(e.target.value as AlgorithmMode)} className="size-select">
               <option value="LeftHand">Left-Hand</option>
               <option value="RightHand">Right-Hand</option>
+              <option value="FloodFill">{t.floodFill || 'Flood Fill'}</option>
+              <option value="Centripetal">{t.centripetal || 'Centripetal'}</option>
               <option value="Custom">Custom (JS)</option>
             </select>
             <div className="button-group" style={{marginLeft: '10px'}}>
@@ -525,6 +577,8 @@ function App() {
             <select value={algo2} onChange={(e) => setAlgo2(e.target.value as AlgorithmMode)} className="size-select">
               <option value="LeftHand">Left-Hand</option>
               <option value="RightHand">Right-Hand</option>
+              <option value="FloodFill">{t.floodFill || 'Flood Fill'}</option>
+              <option value="Centripetal">{t.centripetal || 'Centripetal'}</option>
               <option value="Custom">Custom (JS)</option>
             </select>
             <div className="button-group" style={{marginLeft: '10px'}}>
