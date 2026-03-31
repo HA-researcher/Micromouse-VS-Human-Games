@@ -18,6 +18,7 @@ import { serializeRun, deserializeRun } from './utils/urlSerializer';
 import { STAGES } from './utils/stages';
 import { loadSaveData, saveProgress } from './utils/storage';
 import type { SaveData } from './utils/storage';
+import FaceController from './components/FaceController';
 
 const MONACO_EXTRA_LIBS = `
   enum Direction { North = 0, East = 1, South = 2, West = 3 }
@@ -99,6 +100,8 @@ function App() {
   
   const [mazeSize, setMazeSize] = useState<number>(DEFAULT_MAZE_SIZE);
   const [maze, setMaze] = useState<MazeState>(() => generateMaze(mazeSize, mazeSize, seed));
+  const [isFaceControlEnabled, setIsFaceControlEnabled] = useState<boolean>(false);
+  const faceCommandRef = useRef<'left' | 'right' | 'forward' | 'none'>('none');
 
   useEffect(() => {
     const newMaze = generateMaze(mazeSize, mazeSize, seed);
@@ -327,8 +330,6 @@ function App() {
   useEffect(() => {
     if (!maze || isPlaying) return;
 
-    const params = { straightCost, turnCost };
-
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't capture keys if an input, textarea, or the Monaco editor is focused
       const target = e.target as HTMLElement;
@@ -344,18 +345,6 @@ function App() {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         e.preventDefault();
       }
-
-      const moveStep = (curr: MouseState, targetDir: Direction) => {
-        let next = curr;
-        // Rotate until facing targetDir
-        while (next.direction !== targetDir) {
-          const diff = (targetDir - next.direction + 4) % 4;
-          if (diff === 3) next = SimulatorEngine.turnLeft(next, params);
-          else next = SimulatorEngine.turnRight(next, params);
-        }
-        // Then move forward
-        return SimulatorEngine.moveForward(next, maze, params);
-      };
 
       const getTargetDirByView = (curr: MouseState, key: string, is3D: boolean) => {
         if (is3D) {
@@ -383,7 +372,45 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [maze, isPlaying, straightCost, turnCost, viewMode1, viewMode2]);
+  }, [maze, isPlaying, viewMode1, viewMode2, moveStep]);
+
+  const moveStep = useCallback((curr: MouseState, targetDir: Direction) => {
+    let next = curr;
+    // Rotate until facing targetDir
+    while (next.direction !== targetDir) {
+      const diff = (targetDir - next.direction + 4) % 4;
+      if (diff === 3) next = SimulatorEngine.turnLeft(next, { straightCost, turnCost });
+      else next = SimulatorEngine.turnRight(next, { straightCost, turnCost });
+    }
+    // Then move forward
+    return SimulatorEngine.moveForward(next, maze, { straightCost, turnCost });
+  }, [maze, straightCost, turnCost]);
+
+  // Face Control Loop
+  useEffect(() => {
+    if (!isFaceControlEnabled || isPlaying) return;
+
+    const interval = setInterval(() => {
+      const cmd = faceCommandRef.current;
+      if (cmd === 'none') return;
+
+      setMouse1(prev => {
+        let targetDir = prev.direction;
+        if (cmd === 'left') targetDir = (prev.direction + 3) % 4;
+        if (cmd === 'right') targetDir = (prev.direction + 1) % 4;
+        return moveStep(prev, targetDir);
+      });
+
+      setMouse2(prev => {
+        let targetDir = prev.direction;
+        if (cmd === 'left') targetDir = (prev.direction + 3) % 4;
+        if (cmd === 'right') targetDir = (prev.direction + 1) % 4;
+        return moveStep(prev, targetDir);
+      });
+    }, 800 / speed); // Speed adjusted interval
+
+    return () => clearInterval(interval);
+  }, [isFaceControlEnabled, isPlaying, maze, straightCost, turnCost, speed, moveStep]);
 
   const handleStageSelect = (stageId: string) => {
     const stage = STAGES.find(s => s.id === stageId);
@@ -637,6 +664,14 @@ function App() {
           <button onClick={handleShareRun} className="btn-primary" title="Share your run as a Ghost">
             {lang === 'ja' ? '🚀 走りを共有' : '🚀 Share Run'}
           </button>
+          <button 
+            onClick={() => setIsFaceControlEnabled(!isFaceControlEnabled)} 
+            className={isFaceControlEnabled ? "btn-primary" : "btn-outline"}
+            style={{ position: 'relative' }}
+          >
+            {isFaceControlEnabled ? t.faceControlOn : t.faceControlOff}
+            {isFaceControlEnabled && <span className="pulse-dot" style={{ position: 'absolute', top: '5px', right: '5px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ff5252' }} />}
+          </button>
         </div>
 
         <div className="manual-hint">
@@ -686,6 +721,12 @@ function App() {
       <footer className="app-footer">
         {t.phase}
       </footer>
+
+      <FaceController 
+        enabled={isFaceControlEnabled} 
+        lang={lang} 
+        onCommand={(cmd) => { faceCommandRef.current = cmd; }} 
+      />
     </div>
   );
 }
