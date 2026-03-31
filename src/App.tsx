@@ -12,6 +12,7 @@ import { Direction, type MazeState } from './types/maze';
 import { DEFAULT_MAZE_SIZE } from './utils/constants';
 import Editor from '@monaco-editor/react';
 import { executeCustomAlgorithm } from './utils/customAlgorithmRunner';
+import { calculateOptimalCost } from './utils/pathFinder';
 import { serializeRun, deserializeRun } from './utils/urlSerializer';
 import { STAGES } from './utils/stages';
 import { loadSaveData, saveProgress } from './utils/storage';
@@ -99,8 +100,10 @@ function App() {
   const [maze, setMaze] = useState<MazeState>(() => generateMaze(mazeSize, mazeSize, seed));
 
   useEffect(() => {
-    setMaze(generateMaze(mazeSize, mazeSize, seed));
-  }, [seed, mazeSize]);
+    const newMaze = generateMaze(mazeSize, mazeSize, seed);
+    setMaze(newMaze);
+    setOptimalCost(calculateOptimalCost(newMaze, { straightCost, turnCost }));
+  }, [seed, mazeSize, straightCost, turnCost]);
 
   const [mouse1, setMouse1] = useState<MouseState>(SimulatorEngine.getInitialState());
   const [mouse2, setMouse2] = useState<MouseState>(SimulatorEngine.getInitialState());
@@ -116,6 +119,7 @@ function App() {
   const [error2, setError2] = useState<string | null>(null);
   const [duration1, setDuration1] = useState<number | null>(null);
   const [duration2, setDuration2] = useState<number | null>(null);
+  const [optimalCost, setOptimalCost] = useState<number>(0);
 
   const mouse1Ref = useRef(mouse1);
   const mouse2Ref = useRef(mouse2);
@@ -439,9 +443,18 @@ function App() {
             onWallToggle={isEditMode ? handleWallToggle : undefined} 
             isSurvivalMode={isSurvivalMode}
           />}
-          <div className="simulation-info" style={{marginTop: '10px', display: 'flex', justifyContent: 'space-between'}}>
-            <span className="step-count">{t.totalCost}: {mouse1.totalCost}</span>
-            {duration1 !== null && <span style={{fontSize: '12px', color: '#888'}}>⚡ {duration1.toFixed(2)}ms</span>}
+          <div className="simulation-info" style={{marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '5px'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <span className="step-count"><strong>{t.totalCost}: {mouse1.totalCost}</strong></span>
+              {duration1 !== null && <span style={{fontSize: '12px', color: '#888'}}>⚡ {duration1.toFixed(2)}ms</span>}
+            </div>
+            <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#ccc'}}>
+              <span>{t.steps}: {mouse1.stepCount} | {t.turns}: {mouse1.turnCount}</span>
+              <span>{t.efficiency}: {mouse1.totalCost > 0 ? ((optimalCost / mouse1.totalCost) * 100).toFixed(1) : 0}%</span>
+            </div>
+            <div style={{fontSize: '11px', color: '#888', textAlign: 'right'}}>
+              {t.optimalCost}: {optimalCost}
+            </div>
           </div>
         </div>
         
@@ -475,9 +488,18 @@ function App() {
             onWallToggle={isEditMode ? handleWallToggle : undefined} 
             isSurvivalMode={isSurvivalMode}
           />}
-          <div className="simulation-info" style={{marginTop: '10px', display: 'flex', justifyContent: 'space-between'}}>
-            <span className="step-count">{t.totalCost}: {mouse2.totalCost}</span>
-            {duration2 !== null && <span style={{fontSize: '12px', color: '#888'}}>⚡ {duration2.toFixed(2)}ms</span>}
+          <div className="simulation-info" style={{marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '5px'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <span className="step-count"><strong>{t.totalCost}: {mouse2.totalCost}</strong></span>
+              {duration2 !== null && <span style={{fontSize: '12px', color: '#888'}}>⚡ {duration2.toFixed(2)}ms</span>}
+            </div>
+            <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#ccc'}}>
+              <span>{t.steps}: {mouse2.stepCount} | {t.turns}: {mouse2.turnCount}</span>
+              <span>{t.efficiency}: {mouse2.totalCost > 0 ? ((optimalCost / mouse2.totalCost) * 100).toFixed(1) : 0}%</span>
+            </div>
+            <div style={{fontSize: '11px', color: '#888', textAlign: 'right'}}>
+              {t.optimalCost}: {optimalCost}
+            </div>
           </div>
         </div>
       </div>
