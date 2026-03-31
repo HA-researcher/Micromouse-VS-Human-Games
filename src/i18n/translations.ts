@@ -38,7 +38,9 @@ export const translations = {
     steps: 'Steps',
     turns: 'Turns',
     efficiency: 'Efficiency',
-    optimalCost: 'Optimal Cost'
+    optimalCost: 'Optimal Cost',
+    view2D: '2D View',
+    view3D: '3D View'
   },
   ja: {
     title: 'マイクロマウス・ビジュアライザ V2',
@@ -77,6 +79,8 @@ export const translations = {
     steps: '歩数',
     turns: 'ターン数',
     efficiency: '効率',
-    optimalCost: '理論最短コスト'
+    optimalCost: '理論最短コスト',
+    view2D: '2D表示',
+    view3D: '3D表示'
   }
 };
