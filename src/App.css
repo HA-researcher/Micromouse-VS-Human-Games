@@ -261,6 +261,25 @@ button:active {
   margin-top: 2rem;
 }
 
+.split-screen-container[data-count="1"] .simulator-panel {
+  flex: 1 1 100%;
+  max-width: 800px;
+}
+
+.split-screen-container[data-count="3"],
+.split-screen-container[data-count="4"] {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .split-screen-container[data-count="3"],
+  .split-screen-container[data-count="4"] {
+    grid-template-columns: 1fr;
+  }
+}
+
 .simulator-panel {
   flex: 1 1 45%;
   min-width: 420px;
