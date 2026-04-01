@@ -234,20 +234,22 @@ function App() {
     if (next1) setMouse1(next1);
     if (next2) setMouse2(next2);
 
-    // Campaign Progress
-    if (isCampaignMode && currentStageId) {
-      const isAtGoal = (m: MouseState) => 
-        m.x >= maze.goalX && m.x < maze.goalX + maze.goalWidth &&
-        m.y >= maze.goalY && m.y < maze.goalY + maze.goalHeight;
+    // Goal Detection (Universal)
+    const isAtGoal = (m: MouseState) => 
+      m.x >= maze.goalX && m.x < maze.goalX + maze.goalWidth &&
+      m.y >= maze.goalY && m.y < maze.goalY + maze.goalHeight;
 
-      if ((next1 && isAtGoal(next1)) || (next2 && isAtGoal(next2))) {
+    if ((next1 && isAtGoal(next1)) || (next2 && isAtGoal(next2))) {
+      if (isPlayingRef.current) {
+        togglePlay(); // Stop simulation on goal
+        setShowGoalMessage(true);
+      }
+
+      // Campaign Progress (Only if campaign mode)
+      if (isCampaignMode && currentStageId) {
         const cost = (next1 && isAtGoal(next1)) ? next1.totalCost : (next2 ? next2.totalCost : 0);
         const newData = saveProgress(currentStageId, cost);
         setSaveData(newData);
-        if (isPlayingRef.current) {
-          togglePlay(); // Stop simulation on goal
-          setShowGoalMessage(true);
-        }
       }
     }
 
