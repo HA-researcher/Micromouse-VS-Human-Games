@@ -86,6 +86,26 @@ if (SimulatorEngine.canMoveForward(mouse, maze)) {
 return SimulatorEngine.turnLeft(mouse, params);
 `;
 
+interface AlgoInstance {
+  id: string;
+  mouse: MouseState;
+  algo: AlgorithmMode;
+  customCode: string;
+  error: string | null;
+  duration: number | null;
+  viewMode: '2D' | '3D';
+}
+
+const createInstance = (id: string, algo: AlgorithmMode = 'LeftHand'): AlgoInstance => ({
+  id,
+  mouse: SimulatorEngine.getInitialState(),
+  algo,
+  customCode: DEFAULT_CUSTOM_CODE,
+  error: null,
+  duration: null,
+  viewMode: '2D'
+});
+
 function App() {
   const [seed, setSeed] = useState(42);
   const [lang, setLang] = useState<Language>('ja');
@@ -109,29 +129,16 @@ function App() {
     setOptimalCost(calculateOptimalCost(newMaze, { straightCost, turnCost }));
   }, [seed, mazeSize, straightCost, turnCost]);
 
-  const [mouse1, setMouse1] = useState<MouseState>(SimulatorEngine.getInitialState());
-  const [mouse2, setMouse2] = useState<MouseState>(SimulatorEngine.getInitialState());
   const [ghostPath, setGhostPath] = useState<Direction[] | null>(null);
   const [ghostMouse, setGhostMouse] = useState<MouseState | null>(null);
   const t = translations[lang];
 
-  const [algo1, setAlgo1] = useState<AlgorithmMode>('LeftHand');
-  const [algo2, setAlgo2] = useState<AlgorithmMode>('RightHand');
-  const [customCode1, setCustomCode1] = useState(DEFAULT_CUSTOM_CODE);
-  const [customCode2, setCustomCode2] = useState(DEFAULT_CUSTOM_CODE);
-  const [error1, setError1] = useState<string | null>(null);
-  const [error2, setError2] = useState<string | null>(null);
-  const [duration1, setDuration1] = useState<number | null>(null);
-  const [duration2, setDuration2] = useState<number | null>(null);
+  const [instances, setInstances] = useState<AlgoInstance[]>([createInstance('1', 'LeftHand')]);
   const [optimalCost, setOptimalCost] = useState<number>(0);
-  const [viewMode1, setViewMode1] = useState<'2D' | '3D'>('2D');
-  const [viewMode2, setViewMode2] = useState<'2D' | '3D'>('2D');
 
-  const mouse1Ref = useRef(mouse1);
-  const mouse2Ref = useRef(mouse2);
+  const instancesRef = useRef(instances);
   const ghostMouseRef = useRef(ghostMouse);
-  useEffect(() => { mouse1Ref.current = mouse1; }, [mouse1]);
-  useEffect(() => { mouse2Ref.current = mouse2; }, [mouse2]);
+  useEffect(() => { instancesRef.current = instances; }, [instances]);
   useEffect(() => { ghostMouseRef.current = ghostMouse; }, [ghostMouse]);
 
   // Sync isPlaying to Ref to avoid stale closure in onTick
@@ -145,8 +152,6 @@ function App() {
       const decoded = deserializeRun(ghostData);
       if (decoded) {
         setMazeSize(decoded.width);
-        // We set the seed but generateMaze is in another useEffect, so we might need careful sequencing.
-        // Actually, setMazeSize + setSeed will trigger the maze generation.
         setSeed(decoded.seed);
         setGhostPath(decoded.path);
         setGhostMouse(SimulatorEngine.getInitialState());
@@ -154,108 +159,98 @@ function App() {
     }
   }, []);
 
+  const addInstance = () => {
+    if (instances.length >= 4) return;
+    setInstances(prev => [...prev, createInstance(Math.random().toString(36).substr(2, 9))]);
+  };
+
+  const removeInstance = (id: string) => {
+    if (instances.length <= 1) return;
+    setInstances(prev => prev.filter(inst => inst.id !== id));
+  };
+
+  const updateInstance = (id: string, updates: Partial<AlgoInstance>) => {
+    setInstances(prev => prev.map(inst => inst.id === id ? { ...inst, ...updates } : inst));
+  };
+
   const onTick = useCallback(async (currentStep: number) => {
     if (currentStep === 0) return; // Skip logic on reset tick
-
     const params = { straightCost, turnCost };
     
-    const runAlgo = async (algo: AlgorithmMode, mouseData: MouseState, code: string, setError: (e: string|null) => void, setDuration: (d: number|null) => void) => {
-      try {
-        if (algo === 'LeftHand') {
-          setDuration(null);
-          return SimulatorEngine.stepLeftHand(mouseData, maze, params);
-        }
-        if (algo === 'RightHand') {
-          setDuration(null);
-          return SimulatorEngine.stepRightHand(mouseData, maze, params);
-        }
-        if (algo === 'FloodFill') {
-          setDuration(null);
-          return SimulatorEngine.stepFloodFill(mouseData, maze, params);
-        }
-        if (algo === 'Centripetal') {
-          setDuration(null);
-          return SimulatorEngine.stepCentripetal(mouseData, maze, params);
-        }
-        if (algo === 'Custom') {
-          const instanceId = mouseData === mouse1Ref.current ? 'mouse1' : 'mouse2';
-          const { result, duration } = await executeCustomAlgorithm(instanceId, mouseData, maze, params, code);
-          setError(null);
-          setDuration(duration);
-          return result;
-        }
-      } catch (e) {
-        setError((e as Error).message || String(e));
-        setDuration(null);
-        return mouseData;
+    const updateCell = (m: MouseState, currMaze: MazeState): MazeState => {
+      const idx = m.y * currMaze.width + m.x;
+      if (currMaze.discovered[idx] === currMaze.walls[idx]) return currMaze;
+      const newD = new Uint8Array(currMaze.discovered);
+      newD[idx] = currMaze.walls[idx];
+      const w = currMaze.walls[idx];
+      if (m.y > 0) {
+        if (w & (1 << Direction.North)) newD[(m.y-1)*currMaze.width + m.x] |= (1 << Direction.South);
+        else newD[(m.y-1)*currMaze.width + m.x] &= ~(1 << Direction.South);
       }
-      return mouseData;
-    }
+      if (m.x < currMaze.width - 1) {
+        if (w & (1 << Direction.East)) newD[m.y*currMaze.width + (m.x+1)] |= (1 << Direction.West);
+        else newD[m.y*currMaze.width + (m.x+1)] &= ~(1 << Direction.West);
+      }
+      if (m.y < currMaze.height - 1) {
+        if (w & (1 << Direction.South)) newD[(m.y+1)*currMaze.width + m.x] |= (1 << Direction.North);
+        else newD[(m.y+1)*currMaze.width + m.x] &= ~(1 << Direction.North);
+      }
+      if (m.x > 0) {
+        if (w & (1 << Direction.West)) newD[m.y*currMaze.width + (m.x-1)] |= (1 << Direction.East);
+        else newD[m.y*currMaze.width + (m.x-1)] &= ~(1 << Direction.East);
+      }
+      return { ...currMaze, discovered: newD };
+    };
 
-    // Step 1: Update Discovery for both mice
+    // Step 1: Update Discovery for all mice
     setMaze(prev => {
       let nextMaze = prev;
-      const updateCell = (m: MouseState, currMaze: MazeState): MazeState => {
-        const idx = m.y * currMaze.width + m.x;
-        if (currMaze.discovered[idx] === currMaze.walls[idx]) return currMaze;
-        const newD = new Uint8Array(currMaze.discovered);
-        newD[idx] = currMaze.walls[idx];
-        
-        // Sync neighbors
-        const w = currMaze.walls[idx];
-        // Let's just do it manually for clarity
-        if (m.y > 0) {
-          if (w & (1 << Direction.North)) newD[(m.y-1)*currMaze.width + m.x] |= (1 << Direction.South);
-          else newD[(m.y-1)*currMaze.width + m.x] &= ~(1 << Direction.South);
-        }
-        if (m.x < currMaze.width - 1) {
-          if (w & (1 << Direction.East)) newD[m.y*currMaze.width + (m.x+1)] |= (1 << Direction.West);
-          else newD[m.y*currMaze.width + (m.x+1)] &= ~(1 << Direction.West);
-        }
-        if (m.y < currMaze.height - 1) {
-          if (w & (1 << Direction.South)) newD[(m.y+1)*currMaze.width + m.x] |= (1 << Direction.North);
-          else newD[(m.y+1)*currMaze.width + m.x] &= ~(1 << Direction.North);
-        }
-        if (m.x > 0) {
-          if (w & (1 << Direction.West)) newD[m.y*currMaze.width + (m.x-1)] |= (1 << Direction.East);
-          else newD[m.y*currMaze.width + (m.x-1)] &= ~(1 << Direction.East);
-        }
-
-        return { ...currMaze, discovered: newD };
-      };
-      nextMaze = updateCell(mouse1Ref.current, nextMaze);
-      nextMaze = updateCell(mouse2Ref.current, nextMaze);
+      instancesRef.current.forEach(inst => {
+        nextMaze = updateCell(inst.mouse, nextMaze);
+      });
       return nextMaze;
     });
 
-    const next1 = await runAlgo(algo1, mouse1Ref.current, customCode1, setError1, setDuration1);
-    const next2 = await runAlgo(algo2, mouse2Ref.current, customCode2, setError2, setDuration2);
+    // Step 2: Run algorithms for all instances
+    const nextInstances = await Promise.all(instancesRef.current.map(async (inst) => {
+      let error: string | null = null;
+      let duration: number | null = null;
+      let nextMouse = inst.mouse;
 
-    if (next1) setMouse1(next1);
-    if (next2) setMouse2(next2);
+      try {
+        if (inst.algo === 'LeftHand') {
+          nextMouse = SimulatorEngine.stepLeftHand(inst.mouse, maze, params);
+        } else if (inst.algo === 'RightHand') {
+          nextMouse = SimulatorEngine.stepRightHand(inst.mouse, maze, params);
+        } else if (inst.algo === 'FloodFill') {
+          nextMouse = SimulatorEngine.stepFloodFill(inst.mouse, maze, params);
+        } else if (inst.algo === 'Centripetal') {
+          nextMouse = SimulatorEngine.stepCentripetal(inst.mouse, maze, params);
+        } else if (inst.algo === 'Custom') {
+          const { result, duration: d } = await executeCustomAlgorithm(inst.id, inst.mouse, maze, params, inst.customCode);
+          nextMouse = result;
+          duration = d;
+        }
+      } catch (e) {
+        error = (e as Error).message || String(e);
+      }
+      return { ...inst, mouse: nextMouse, error, duration };
+    }));
 
-    // Goal Detection (Universal) moved to useEffect below
+    setInstances(nextInstances);
 
     // Ghost movement
     if (ghostPath && ghostMouseRef.current) {
-      const stepIdx = currentStep - 1; // currentStep is 1-based, path is 0-based
+      const stepIdx = currentStep - 1;
       if (stepIdx >= 0 && stepIdx < ghostPath.length) {
         let g = ghostMouseRef.current;
         const targetDir = ghostPath[stepIdx];
-        
-        if (g.direction !== targetDir) {
-          // If direction is different, it's a turn.
-          // In reality, a single step might have been a turn OR a move.
-          // Since we only saved one direction per tick, we'll just set it.
-          g = { ...g, direction: targetDir };
-        } else {
-          // If direction is same, it was a move forward.
-          g = SimulatorEngine.moveForward(g, maze, params);
-        }
+        if (g.direction !== targetDir) g = { ...g, direction: targetDir };
+        else g = SimulatorEngine.moveForward(g, maze, params);
         setGhostMouse(g);
       }
     }
-  }, [maze, straightCost, turnCost, algo1, algo2, customCode1, customCode2, ghostPath]);
+  }, [maze, straightCost, turnCost, ghostPath]);
 
   const handleWallToggle = useCallback((x: number, y: number, direction: Direction) => {
     if (!isEditMode) return;
@@ -293,10 +288,12 @@ function App() {
 
   const handleReset = useCallback(() => {
     reset();
-    setMouse1(SimulatorEngine.getInitialState());
-    setMouse2(SimulatorEngine.getInitialState());
-    setDuration1(null);
-    setDuration2(null);
+    setInstances(prev => prev.map(inst => ({
+      ...inst,
+      mouse: SimulatorEngine.getInitialState(),
+      duration: null,
+      error: null
+    })));
     if (ghostPath) {
       setGhostMouse(SimulatorEngine.getInitialState());
     } else {
@@ -307,16 +304,15 @@ function App() {
 
   // Reactive Goal Detection (Handles manual movement and algo)
   useEffect(() => {
-    if (!maze || showGoalMessage) return;
+    if (!maze || showGoalMessage || instances.length === 0) return;
 
     const isAtGoal = (m: MouseState) => 
       m.x >= maze.goalX && m.x < maze.goalX + maze.goalWidth &&
       m.y >= maze.goalY && m.y < maze.goalY + maze.goalHeight;
 
-    const g1 = isAtGoal(mouse1);
-    const g2 = isAtGoal(mouse2);
+    const reachingInst = instances.find(inst => isAtGoal(inst.mouse));
 
-    if (g1 || g2) {
+    if (reachingInst) {
       setShowGoalMessage(true);
       if (isPlayingRef.current) {
         togglePlay();
@@ -324,12 +320,12 @@ function App() {
 
       // Campaign Progress (Only if campaign mode)
       if (isCampaignMode && currentStageId) {
-        const cost = g1 ? mouse1.totalCost : mouse2.totalCost;
+        const cost = reachingInst.mouse.totalCost;
         const newData = saveProgress(currentStageId, cost);
         setSaveData(newData);
       }
     }
-  }, [mouse1.x, mouse1.y, mouse2.x, mouse2.y, maze, isCampaignMode, currentStageId, showGoalMessage, togglePlay]);
+  }, [instances, maze, isCampaignMode, currentStageId, showGoalMessage, togglePlay]);
 
   const handleGenerate = useCallback(() => {
     const newSeed = Math.floor(Math.random() * 10000);
@@ -371,8 +367,8 @@ function App() {
   };
 
   const handleShareRun = () => {
-    if (mouse1.history.length === 0) return;
-    const data = serializeRun(seed, maze.width, maze.height, mouse1.history);
+    if (instances.length === 0 || instances[0].mouse.history.length === 0) return;
+    const data = serializeRun(seed, maze.width, maze.height, instances[0].mouse.history);
     const url = new URL(window.location.href);
     url.searchParams.set('g', data);
     
@@ -433,14 +429,16 @@ function App() {
       };
 
       if (['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].includes(e.key)) {
-        setMouse1(prev => moveStep(prev, getTargetDirByView(prev, e.key, viewMode1 === '3D')));
-        setMouse2(prev => moveStep(prev, getTargetDirByView(prev, e.key, viewMode2 === '3D')));
+        setInstances(prev => prev.map(inst => ({
+          ...inst,
+          mouse: moveStep(inst.mouse, getTargetDirByView(inst.mouse, e.key, inst.viewMode === '3D'))
+        })));
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [maze, isPlaying, viewMode1, viewMode2, moveStep]);
+  }, [maze, isPlaying, moveStep]);
 
   // Face Control Loop
   useEffect(() => {
@@ -450,19 +448,12 @@ function App() {
       const cmd = faceCommandRef.current;
       if (cmd === 'none') return;
 
-      setMouse1(prev => {
-        let targetDir = prev.direction;
-        if (cmd === 'left') targetDir = (prev.direction + 3) % 4;
-        if (cmd === 'right') targetDir = (prev.direction + 1) % 4;
-        return moveStep(prev, targetDir);
-      });
-
-      setMouse2(prev => {
-        let targetDir = prev.direction;
-        if (cmd === 'left') targetDir = (prev.direction + 3) % 4;
-        if (cmd === 'right') targetDir = (prev.direction + 1) % 4;
-        return moveStep(prev, targetDir);
-      });
+      setInstances(prev => prev.map(inst => {
+        let targetDir = inst.mouse.direction;
+        if (cmd === 'left') targetDir = (inst.mouse.direction + 3) % 4;
+        if (cmd === 'right') targetDir = (inst.mouse.direction + 1) % 4;
+        return { ...inst, mouse: moveStep(inst.mouse, targetDir) };
+      }));
     }, 800 / speed); // Speed adjusted interval
 
     return () => clearInterval(interval);
@@ -511,166 +502,104 @@ function App() {
         </div>
       )}
       
-      <div className="split-screen-container">
-        <div className="simulator-panel glass">
-          <div className="panel-header">
-            <h3 style={{color: '#fff', fontSize: '1rem', margin: 0}}>Algorithm 1</h3>
-            <select value={algo1} onChange={(e) => setAlgo1(e.target.value as AlgorithmMode)} className="size-select">
-              <option value="LeftHand">Left-Hand</option>
-              <option value="RightHand">Right-Hand</option>
-              <option value="FloodFill">{t.floodFill || 'Flood Fill'}</option>
-              <option value="Centripetal">{t.centripetal || 'Centripetal'}</option>
-              <option value="Custom">Custom (JS)</option>
-            </select>
-            <div className="button-group" style={{marginLeft: '10px'}}>
-              <button 
-                onClick={() => setViewMode1(v => v === '2D' ? '3D' : '2D')} 
-                className="btn-outline" 
-                style={{padding: '2px 8px', fontSize: '11px'}}
+      <div className="split-screen-container" data-count={instances.length}>
+        {instances.map((inst, index) => (
+          <div key={inst.id} className="simulator-panel glass">
+            <div className="panel-header">
+              <div style={{display: 'flex', alignItems: 'baseline', gap: '10px'}}>
+                <h3 style={{color: '#fff', fontSize: '1rem', margin: 0}}>Algo {index + 1}</h3>
+                <div style={{display: 'flex', gap: '4px'}}>
+                  {instances.length < 4 && index === instances.length - 1 && (
+                    <button onClick={addInstance} className="btn-outline" title={t.addAlgo || "Add"} style={{padding: '0px 6px', fontSize: '14px', height: '20px', lineHeight: '18px'}}>+</button>
+                  )}
+                  {instances.length > 1 && (
+                    <button onClick={() => removeInstance(inst.id)} className="btn-outline" title={t.removeAlgo || "Remove"} style={{padding: '0px 6px', fontSize: '14px', height: '20px', lineHeight: '18px'}}>×</button>
+                  )}
+                </div>
+              </div>
+              
+              <select 
+                value={inst.algo} 
+                onChange={(e) => updateInstance(inst.id, { algo: e.target.value as AlgorithmMode })} 
+                className="size-select"
               >
-                {viewMode1 === '2D' ? t.view3D : t.view2D}
+                <option value="LeftHand">Left-Hand</option>
+                <option value="RightHand">Right-Hand</option>
+                <option value="FloodFill">{t.floodFill || 'Flood Fill'}</option>
+                <option value="Centripetal">{t.centripetal || 'Centripetal'}</option>
+                <option value="Custom">Custom (JS)</option>
+              </select>
+              <button 
+                onClick={() => updateInstance(inst.id, { viewMode: inst.viewMode === '2D' ? '3D' : '2D' })} 
+                className="btn-outline" 
+                style={{padding: '2px 8px', fontSize: '11px', marginLeft: '8px'}}
+              >
+                {inst.viewMode === '2D' ? t.view3D : t.view2D}
               </button>
             </div>
-          </div>
-          {algo1 === 'Custom' && (
-            <div style={{height: '250px', marginBottom: '10px', border: '1px solid #444', borderRadius: '4px', overflow: 'hidden'}}>
-              <Editor 
-                defaultLanguage="javascript" 
-                theme="vs-dark" 
-                value={customCode1} 
-                onChange={(v: string | undefined) => setCustomCode1(v || '')} 
-                options={{minimap: {enabled: false}, fontSize: 13, scrollBeyondLastLine: false}} 
-                beforeMount={handleEditorBeforeMount}
-              />
-            </div>
-          )}
-          {error1 && <div style={{color: '#ff5252', fontSize: '12px', marginBottom: '10px', padding: '5px', backgroundColor: 'rgba(255,0,0,0.1)'}}>{error1}</div>}
-          
-          {maze && (viewMode1 === '2D' ? (
-            <MazeRenderer 
-              maze={maze} 
-              mouse={mouse1} 
-              ghost={ghostMouse || undefined}
-              onWallToggle={isEditMode ? handleWallToggle : undefined} 
-              isSurvivalMode={isSurvivalMode}
-            />
-          ) : (
-            <MazeRenderer3D 
-              maze={maze} 
-              mouse={mouse1} 
-              ghost={ghostMouse || undefined}
-              isSurvivalMode={isSurvivalMode}
-            />
-          ))}
-          <div className="simulation-info">
-            <div className="telemetry-main">
-              <div className="stat-item">
-                <span className="stat-label">{t.totalCost}</span>
-                <span className="step-count">{mouse1.totalCost}</span>
+
+            {inst.algo === 'Custom' && (
+              <div style={{height: '250px', marginBottom: '10px', border: '1px solid #444', borderRadius: '4px', overflow: 'hidden'}}>
+                <Editor 
+                  defaultLanguage="javascript" 
+                  theme="vs-dark" 
+                  value={inst.customCode} 
+                  onChange={(v: string | undefined) => updateInstance(inst.id, { customCode: v || '' })} 
+                  options={{minimap: {enabled: false}, fontSize: 13, scrollBeyondLastLine: false}} 
+                  beforeMount={handleEditorBeforeMount}
+                />
               </div>
-              {duration1 !== null && <span className="duration-badge">⚡ {duration1.toFixed(2)}ms</span>}
-            </div>
+            )}
+
+            {inst.error && <div style={{color: '#ff5252', fontSize: '12px', marginBottom: '10px', padding: '5px', backgroundColor: 'rgba(255,0,0,0.1)'}}>{inst.error}</div>}
             
-            <div className="telemetry-grid">
-              <div className="stat-item mini">
-                <span className="stat-label">{t.steps}</span>
-                <span className="stat-value">{mouse1.stepCount}</span>
-              </div>
-              <div className="stat-item mini">
-                <span className="stat-label">{t.turns}</span>
-                <span className="stat-value">{mouse1.turnCount}</span>
-              </div>
-              <div className="stat-item mini">
-                <span className="stat-label">{t.efficiency}</span>
-                <span className="stat-value">{mouse1.totalCost > 0 ? ((optimalCost / mouse1.totalCost) * 100).toFixed(1) : 0}%</span>
-              </div>
-              <div className="stat-item mini optimal">
-                <span className="stat-label">{t.optimalCost}</span>
-                <span className="stat-value">{optimalCost}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="simulator-panel" style={{ flex: '1 1 45%', minWidth: '400px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <h3 style={{color: '#fff', fontSize: '1rem', margin: 0}}>Algorithm 2</h3>
-            <select value={algo2} onChange={(e) => setAlgo2(e.target.value as AlgorithmMode)} className="size-select">
-              <option value="LeftHand">Left-Hand</option>
-              <option value="RightHand">Right-Hand</option>
-              <option value="FloodFill">{t.floodFill || 'Flood Fill'}</option>
-              <option value="Centripetal">{t.centripetal || 'Centripetal'}</option>
-              <option value="Custom">Custom (JS)</option>
-            </select>
-            <div className="button-group" style={{marginLeft: '10px'}}>
-              <button 
-                onClick={() => setViewMode2(v => v === '2D' ? '3D' : '2D')} 
-                className="btn-outline" 
-                style={{padding: '2px 8px', fontSize: '11px'}}
-              >
-                {viewMode2 === '2D' ? t.view3D : t.view2D}
-              </button>
-            </div>
-          </div>
-          {algo2 === 'Custom' && (
-            <div style={{height: '250px', marginBottom: '10px', border: '1px solid #444', borderRadius: '4px', overflow: 'hidden'}}>
-              <Editor 
-                defaultLanguage="javascript" 
-                theme="vs-dark" 
-                value={customCode2} 
-                onChange={(v: string | undefined) => setCustomCode2(v || '')} 
-                options={{minimap: {enabled: false}, fontSize: 13, scrollBeyondLastLine: false}} 
-                beforeMount={handleEditorBeforeMount}
+            {maze && (inst.viewMode === '2D' ? (
+              <MazeRenderer 
+                maze={maze} 
+                mouse={inst.mouse} 
+                ghost={ghostMouse || undefined}
+                onWallToggle={isEditMode ? handleWallToggle : undefined} 
+                isSurvivalMode={isSurvivalMode}
               />
-            </div>
-          )}
-          {error2 && <div style={{color: '#ff5252', fontSize: '12px', marginBottom: '10px', padding: '5px', backgroundColor: 'rgba(255,0,0,0.1)'}}>{error2}</div>}
-          
-          {maze && (viewMode2 === '2D' ? (
-            <MazeRenderer 
-              maze={maze} 
-              mouse={mouse2} 
-              ghost={ghostMouse || undefined}
-              onWallToggle={isEditMode ? handleWallToggle : undefined} 
-              isSurvivalMode={isSurvivalMode}
-            />
-          ) : (
-            <MazeRenderer3D 
-              maze={maze} 
-              mouse={mouse2} 
-              ghost={ghostMouse || undefined}
-              isSurvivalMode={isSurvivalMode}
-            />
-          ))}
-          <div className="simulation-info">
-            <div className="telemetry-main">
-              <div className="stat-item">
-                <span className="stat-label">{t.totalCost}</span>
-                <span className="step-count">{mouse2.totalCost}</span>
+            ) : (
+              <MazeRenderer3D 
+                maze={maze} 
+                mouse={inst.mouse} 
+                ghost={ghostMouse || undefined}
+                isSurvivalMode={isSurvivalMode}
+              />
+            ))}
+
+            <div className="simulation-info">
+              <div className="telemetry-main">
+                <div className="stat-item">
+                  <span className="stat-label">{t.totalCost}</span>
+                  <span className="step-count">{inst.mouse.totalCost}</span>
+                </div>
+                {inst.duration !== null && <span className="duration-badge">⚡ {inst.duration.toFixed(2)}ms</span>}
               </div>
-              {duration2 !== null && <span className="duration-badge">⚡ {duration2.toFixed(2)}ms</span>}
-            </div>
-            
-            <div className="telemetry-grid">
-              <div className="stat-item mini">
-                <span className="stat-label">{t.steps}</span>
-                <span className="stat-value">{mouse2.stepCount}</span>
-              </div>
-              <div className="stat-item mini">
-                <span className="stat-label">{t.turns}</span>
-                <span className="stat-value">{mouse2.turnCount}</span>
-              </div>
-              <div className="stat-item mini">
-                <span className="stat-label">{t.efficiency}</span>
-                <span className="stat-value">{mouse2.totalCost > 0 ? ((optimalCost / mouse2.totalCost) * 100).toFixed(1) : 0}%</span>
-              </div>
-              <div className="stat-item mini optimal">
-                <span className="stat-label">{t.optimalCost}</span>
-                <span className="stat-value">{optimalCost}</span>
+              
+              <div className="telemetry-grid">
+                <div className="stat-item mini">
+                  <span className="stat-label">{t.steps}</span>
+                  <span className="stat-value">{inst.mouse.stepCount}</span>
+                </div>
+                <div className="stat-item mini">
+                  <span className="stat-label">{t.turns}</span>
+                  <span className="stat-value">{inst.mouse.turnCount}</span>
+                </div>
+                <div className="stat-item mini">
+                  <span className="stat-label">{t.efficiency}</span>
+                  <span className="stat-value">{inst.mouse.totalCost > 0 ? ((optimalCost / inst.mouse.totalCost) * 100).toFixed(1) : 0}%</span>
+                </div>
+                <div className="stat-item mini optimal">
+                  <span className="stat-label">{t.optimalCost}</span>
+                  <span className="stat-value">{optimalCost}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        ))}
       </div>
 
       <div className="campaign-panel" style={{marginTop: '20px', padding: '15px', backgroundColor: '#2a2a2a', borderRadius: '8px', border: '1px solid #444'}}>

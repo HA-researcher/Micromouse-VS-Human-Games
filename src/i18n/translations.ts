@@ -44,7 +44,9 @@ export const translations = {
     faceControlOn: '👤 Face Control ON',
     faceControlOff: '📷 Enable Face Control',
     floodFill: 'Adachi (Flood Fill)',
-    centripetal: 'Centripetal Method'
+    centripetal: 'Centripetal Method',
+    addAlgo: 'Add Algorithm',
+    removeAlgo: 'Remove'
   },
   ja: {
     title: 'マイクロマウス・ビジュアライザ V2',
@@ -89,6 +91,8 @@ export const translations = {
     faceControlOn: '👤 顔認識操作 ON',
     faceControlOff: '🎥 顔認識操作を有効化',
     floodFill: '足立法',
-    centripetal: '求心法'
+    centripetal: '求心法',
+    addAlgo: '追加',
+    removeAlgo: '削除'
   }
 };
