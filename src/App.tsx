@@ -84,7 +84,7 @@ if (SimulatorEngine.canMoveForward(mouse, maze)) {
   return SimulatorEngine.moveForward(mouse, maze, params);
 }
 return SimulatorEngine.turnLeft(mouse, params);
-\`;
+`;
 
 interface AlgoInstance {
   id: string;
@@ -144,6 +144,19 @@ function App() {
   // Sync isPlaying to Ref to avoid stale closure in onTick
   const isPlayingRef = useRef<boolean>(false);
 
+  // Load Ghost from URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ghostData = params.get('g');
+    if (ghostData) {
+      const decoded = deserializeRun(ghostData);
+      if (decoded) {
+        setMazeSize(decoded.width);
+        setSeed(decoded.seed);
+        setGhostPath(decoded.path);
+        setGhostMouse(SimulatorEngine.getInitialState());
+      }
+    }
   }, []);
 
   const addInstance = () => {
@@ -238,7 +251,6 @@ function App() {
       }
     }
   }, [maze, straightCost, turnCost, ghostPath]);
-  }, [maze, straightCost, turnCost, algo1, algo2, customCode1, customCode2, ghostPath]);
 
   const handleWallToggle = useCallback((x: number, y: number, direction: Direction) => {
     if (!isEditMode) return;
@@ -426,7 +438,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [maze, isPlaying, viewMode1, viewMode2, moveStep]);
+  }, [maze, isPlaying, moveStep]);
 
   // Face Control Loop
   useEffect(() => {
@@ -442,13 +454,6 @@ function App() {
         if (cmd === 'right') targetDir = (inst.mouse.direction + 1) % 4;
         return { ...inst, mouse: moveStep(inst.mouse, targetDir) };
       }));
-
-      setMouse2(prev => {
-        let targetDir = prev.direction;
-        if (cmd === 'left') targetDir = (prev.direction + 3) % 4;
-        if (cmd === 'right') targetDir = (prev.direction + 1) % 4;
-        return moveStep(prev, targetDir);
-      });
     }, 800 / speed); // Speed adjusted interval
 
     return () => clearInterval(interval);
