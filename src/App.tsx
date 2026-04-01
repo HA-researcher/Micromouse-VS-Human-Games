@@ -807,9 +807,6 @@ function App() {
         <div className="seed-info">{t.currentSeed}: {seed}</div>
       </div>
 
-      <footer className="app-footer">
-        {t.phase}
-      </footer>
 
       <FaceController 
         enabled={isFaceControlEnabled} 
