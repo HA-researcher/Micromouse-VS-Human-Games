@@ -502,9 +502,9 @@ function App() {
         </div>
       )}
       
-      <div className="split-screen-container" style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
-        <div className="simulator-panel" style={{ flex: '1 1 45%', minWidth: '400px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+      <div className="split-screen-container">
+        <div className="simulator-panel glass">
+          <div className="panel-header">
             <h3 style={{color: '#fff', fontSize: '1rem', margin: 0}}>Algorithm 1</h3>
             <select value={algo1} onChange={(e) => setAlgo1(e.target.value as AlgorithmMode)} className="size-select">
               <option value="LeftHand">Left-Hand</option>
@@ -553,17 +553,32 @@ function App() {
               isSurvivalMode={isSurvivalMode}
             />
           ))}
-          <div className="simulation-info" style={{marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '5px'}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-              <span className="step-count"><strong>{t.totalCost}: {mouse1.totalCost}</strong></span>
-              {duration1 !== null && <span style={{fontSize: '12px', color: '#888'}}>⚡ {duration1.toFixed(2)}ms</span>}
+          <div className="simulation-info">
+            <div className="telemetry-main">
+              <div className="stat-item">
+                <span className="stat-label">{t.totalCost}</span>
+                <span className="step-count">{mouse1.totalCost}</span>
+              </div>
+              {duration1 !== null && <span className="duration-badge">⚡ {duration1.toFixed(2)}ms</span>}
             </div>
-            <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#ccc'}}>
-              <span>{t.steps}: {mouse1.stepCount} | {t.turns}: {mouse1.turnCount}</span>
-              <span>{t.efficiency}: {mouse1.totalCost > 0 ? ((optimalCost / mouse1.totalCost) * 100).toFixed(1) : 0}%</span>
-            </div>
-            <div style={{fontSize: '11px', color: '#888', textAlign: 'right'}}>
-              {t.optimalCost}: {optimalCost}
+            
+            <div className="telemetry-grid">
+              <div className="stat-item mini">
+                <span className="stat-label">{t.steps}</span>
+                <span className="stat-value">{mouse1.stepCount}</span>
+              </div>
+              <div className="stat-item mini">
+                <span className="stat-label">{t.turns}</span>
+                <span className="stat-value">{mouse1.turnCount}</span>
+              </div>
+              <div className="stat-item mini">
+                <span className="stat-label">{t.efficiency}</span>
+                <span className="stat-value">{mouse1.totalCost > 0 ? ((optimalCost / mouse1.totalCost) * 100).toFixed(1) : 0}%</span>
+              </div>
+              <div className="stat-item mini optimal">
+                <span className="stat-label">{t.optimalCost}</span>
+                <span className="stat-value">{optimalCost}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -618,17 +633,32 @@ function App() {
               isSurvivalMode={isSurvivalMode}
             />
           ))}
-          <div className="simulation-info" style={{marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '5px'}}>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-              <span className="step-count"><strong>{t.totalCost}: {mouse2.totalCost}</strong></span>
-              {duration2 !== null && <span style={{fontSize: '12px', color: '#888'}}>⚡ {duration2.toFixed(2)}ms</span>}
+          <div className="simulation-info">
+            <div className="telemetry-main">
+              <div className="stat-item">
+                <span className="stat-label">{t.totalCost}</span>
+                <span className="step-count">{mouse2.totalCost}</span>
+              </div>
+              {duration2 !== null && <span className="duration-badge">⚡ {duration2.toFixed(2)}ms</span>}
             </div>
-            <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#ccc'}}>
-              <span>{t.steps}: {mouse2.stepCount} | {t.turns}: {mouse2.turnCount}</span>
-              <span>{t.efficiency}: {mouse2.totalCost > 0 ? ((optimalCost / mouse2.totalCost) * 100).toFixed(1) : 0}%</span>
-            </div>
-            <div style={{fontSize: '11px', color: '#888', textAlign: 'right'}}>
-              {t.optimalCost}: {optimalCost}
+            
+            <div className="telemetry-grid">
+              <div className="stat-item mini">
+                <span className="stat-label">{t.steps}</span>
+                <span className="stat-value">{mouse2.stepCount}</span>
+              </div>
+              <div className="stat-item mini">
+                <span className="stat-label">{t.turns}</span>
+                <span className="stat-value">{mouse2.turnCount}</span>
+              </div>
+              <div className="stat-item mini">
+                <span className="stat-label">{t.efficiency}</span>
+                <span className="stat-value">{mouse2.totalCost > 0 ? ((optimalCost / mouse2.totalCost) * 100).toFixed(1) : 0}%</span>
+              </div>
+              <div className="stat-item mini optimal">
+                <span className="stat-label">{t.optimalCost}</span>
+                <span className="stat-value">{optimalCost}</span>
+              </div>
             </div>
           </div>
         </div>
