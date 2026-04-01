@@ -19,6 +19,9 @@ import { STAGES } from './utils/stages';
 import { loadSaveData, saveProgress } from './utils/storage';
 import type { SaveData } from './utils/storage';
 import FaceController from './components/FaceController';
+import TutorialCard from './components/TutorialCard';
+import { TUTORIAL_LESSONS } from './utils/tutorialData';
+import type { Lesson } from './types/tutorial';
 
 const MONACO_EXTRA_LIBS = `
   enum Direction { North = 0, East = 1, South = 2, West = 3 }
@@ -117,6 +120,10 @@ function App() {
   const [currentStageId, setCurrentStageId] = useState<string | null>(null);
   const [saveData, setSaveData] = useState<SaveData>(() => loadSaveData());
   const [showGoalMessage, setShowGoalMessage] = useState<boolean>(false);
+  
+  // Tutorial State
+  const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
   
   const [mazeSize, setMazeSize] = useState<number>(DEFAULT_MAZE_SIZE);
   const [maze, setMaze] = useState<MazeState>(() => generateMaze(mazeSize, mazeSize, seed));
@@ -429,10 +436,31 @@ function App() {
       };
 
       if (['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].includes(e.key)) {
-        setInstances(prev => prev.map(inst => ({
-          ...inst,
-          mouse: moveStep(inst.mouse, getTargetDirByView(inst.mouse, e.key, inst.viewMode === '3D'))
-        })));
+        setInstances(prev => prev.map(inst => {
+          const is3D = inst.viewMode === '3D';
+          if (is3D) {
+            // 3D Mode (Relative): Separation of rotation and movement
+            let nextMouse = inst.mouse;
+            if (e.key === 'ArrowUp') {
+              nextMouse = SimulatorEngine.moveForward(inst.mouse, maze, { straightCost, turnCost });
+            } else if (e.key === 'ArrowLeft') {
+              nextMouse = SimulatorEngine.turnLeft(inst.mouse, { straightCost, turnCost });
+            } else if (e.key === 'ArrowRight') {
+              nextMouse = SimulatorEngine.turnRight(inst.mouse, { straightCost, turnCost });
+            } else if (e.key === 'ArrowDown') {
+              // U-turn (Turn 180 degrees - 2 turn actions)
+              const firstTurn = SimulatorEngine.turnRight(inst.mouse, { straightCost, turnCost });
+              nextMouse = SimulatorEngine.turnRight(firstTurn, { straightCost, turnCost });
+            }
+            return { ...inst, mouse: nextMouse };
+          } else {
+            // 2D Mode (Absolute): Traditional 'Press key to go that direction'
+            return {
+              ...inst,
+              mouse: moveStep(inst.mouse, getTargetDirByView(inst.mouse, e.key, false))
+            };
+          }
+        }));
       }
     };
 
@@ -449,10 +477,19 @@ function App() {
       if (cmd === 'none') return;
 
       setInstances(prev => prev.map(inst => {
-        let targetDir = inst.mouse.direction;
-        if (cmd === 'left') targetDir = (inst.mouse.direction + 3) % 4;
-        if (cmd === 'right') targetDir = (inst.mouse.direction + 1) % 4;
-        return { ...inst, mouse: moveStep(inst.mouse, targetDir) };
+        const is3D = inst.viewMode === '3D';
+        if (is3D) {
+          if (cmd === 'left') return { ...inst, mouse: SimulatorEngine.turnLeft(inst.mouse, { straightCost, turnCost }) };
+          if (cmd === 'right') return { ...inst, mouse: SimulatorEngine.turnRight(inst.mouse, { straightCost, turnCost }) };
+          if (cmd === 'forward') return { ...inst, mouse: SimulatorEngine.moveForward(inst.mouse, maze, { straightCost, turnCost }) };
+          return inst;
+        } else {
+          // 2D Mode: Absolute turn and move (Forward command moves in current direction)
+          let targetDir = inst.mouse.direction;
+          if (cmd === 'left') targetDir = (inst.mouse.direction + 3) % 4;
+          if (cmd === 'right') targetDir = (inst.mouse.direction + 1) % 4;
+          return { ...inst, mouse: moveStep(inst.mouse, targetDir) };
+        }
       }));
     }, 800 / speed); // Speed adjusted interval
 
@@ -478,6 +515,39 @@ function App() {
       target: monaco.languages.typescript.ScriptTarget.ESNext,
       allowNonTsExtensions: true,
     });
+  };
+
+  // Tutorial logic
+  useEffect(() => {
+    if (!activeLesson) return;
+    const step = activeLesson.steps[currentStepIndex];
+    if (!step.autoSetup) return;
+
+    if (step.autoSetup.seed !== undefined) setSeed(step.autoSetup.seed);
+    if (step.autoSetup.mazeSize !== undefined) {
+      setMazeSize(step.autoSetup.mazeSize);
+      handleReset();
+    }
+    if (step.autoSetup.algo !== undefined) {
+      setInstances(prev => prev.map((inst, i) => i === 0 ? { ...inst, algo: step.autoSetup!.algo as any } : inst));
+    }
+    if (step.autoSetup.mousePos !== undefined) {
+      setInstances(prev => prev.map((inst, i) => i === 0 ? { 
+        ...inst, 
+        mouse: { ...inst.mouse, x: step.autoSetup!.mousePos!.x, y: step.autoSetup!.mousePos!.y, direction: step.autoSetup!.mousePos!.dir } 
+      } : inst));
+    }
+  }, [activeLesson, currentStepIndex]);
+
+  const startTutorial = (lessonId: string) => {
+    const lesson = TUTORIAL_LESSONS.find(l => l.id === lessonId);
+    if (lesson) {
+      setActiveLesson(lesson);
+      setCurrentStepIndex(0);
+      setIsCampaignMode(false);
+      setIsEditMode(false);
+      setIsSurvivalMode(false);
+    }
   };
 
   const toggleLang = () => setLang(l => l === 'en' ? 'ja' : 'en');
@@ -560,6 +630,7 @@ function App() {
                 ghost={ghostMouse || undefined}
                 onWallToggle={isEditMode ? handleWallToggle : undefined} 
                 isSurvivalMode={isSurvivalMode}
+                highlightCells={index === 0 && activeLesson ? activeLesson.steps[currentStepIndex].highlightCells : undefined}
               />
             ) : (
               <MazeRenderer3D 
@@ -745,6 +816,37 @@ function App() {
         lang={lang} 
         onCommand={(cmd) => { faceCommandRef.current = cmd; }} 
       />
+
+      {activeLesson && (
+        <TutorialCard 
+          lesson={activeLesson}
+          stepIndex={currentStepIndex}
+          lang={lang}
+          onNext={() => setCurrentStepIndex(prev => Math.min(prev + 1, activeLesson.steps.length - 1))}
+          onBack={() => setCurrentStepIndex(prev => Math.max(prev - 1, 0))}
+          onClose={() => setActiveLesson(null)}
+          onJumpToStep={(idx) => setCurrentStepIndex(idx)}
+        />
+      )}
+
+      {/* Tutorial Start Button in Sidebar/Header area could be added, 
+          but for now let's add it near campaign or floating */}
+      <div style={{ position: 'fixed', bottom: '20px', left: '20px', display: 'flex', gap: '10px' }}>
+        <button 
+          onClick={() => startTutorial('basics')} 
+          className="btn-primary" 
+          style={{ borderRadius: '50px', padding: '10px 20px', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}
+        >
+          {lang === 'ja' ? '🎓 チュートリアル：基本' : '🎓 Tutorial: Basics'}
+        </button>
+        <button 
+          onClick={() => startTutorial('lefthand')} 
+          className="btn-outline" 
+          style={{ borderRadius: '50px', padding: '10px 20px', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', backgroundColor: 'rgba(0,0,0,0.5)' }}
+        >
+          {lang === 'ja' ? '🎓 左手法' : '🎓 Left-Hand'}
+        </button>
+      </div>
     </div>
   );
 }

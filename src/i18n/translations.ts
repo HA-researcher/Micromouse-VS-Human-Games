@@ -46,7 +46,44 @@ export const translations = {
     floodFill: 'Adachi (Flood Fill)',
     centripetal: 'Centripetal Method',
     addAlgo: 'Add Algorithm',
-    removeAlgo: 'Remove'
+    removeAlgo: 'Remove',
+    tutorial: {
+      basics: {
+        title: 'Basics: The Goal',
+        step1: {
+          title: 'Welcome!',
+          text: 'Micromouse is a robot that solves a maze. The green square (S) is the start.'
+        },
+        step2: {
+          title: 'The Goal',
+          text: 'The gold area (G) is the goal. Usually, it is a 2x2 area in the center.'
+        },
+        step3: {
+          title: 'Manual Control',
+          text: 'Try moving the mouse using the arrow keys on your keyboard!'
+        }
+      },
+      lefthand: {
+        title: 'Left-Hand Rule',
+        step1: {
+          title: 'Simple Algorithm',
+          text: 'The Left-Hand rule is simple: Always keep your left hand on the wall.'
+        },
+        step2: {
+          title: 'Simulating',
+          text: 'Press the "Play" button or use "Next" to see it in action!'
+        },
+        quiz1: {
+          title: 'Left-Hand Quiz',
+          text: 'Check your understanding!',
+          question: 'If there is no wall on the left, what will the mouse do?',
+          opt1: 'Turn Left',
+          opt2: 'Move Forward',
+          opt3: 'Turn Right',
+          hint: 'Think about the "Left-Hand" rule priority.'
+        }
+      }
+    }
   },
   ja: {
     title: 'マイクロマウス・ビジュアライザ V2',
@@ -93,6 +130,43 @@ export const translations = {
     floodFill: '足立法',
     centripetal: '求心法',
     addAlgo: '追加',
-    removeAlgo: '削除'
+    removeAlgo: '削除',
+    tutorial: {
+      basics: {
+        title: '基本：ゴールを目指せ',
+        step1: {
+          title: 'ようこそ！',
+          text: 'マイクロマウスは、迷路を解く自律走行ロボットです。緑色の (S) がスタート地点です。'
+        },
+        step2: {
+          title: 'ゴール地点',
+          text: '中央の金色のエリア (G) がゴールです。通常、公式ルールでは16x16の中心2x2エリアがゴールとなります。'
+        },
+        step3: {
+          title: '手動で動かしてみよう',
+          text: 'キーボードの矢印キーを使って、マウスを自由に動かしてみましょう。壁にぶつかると止まります。'
+        }
+      },
+      lefthand: {
+        title: '左手法（りだほう）',
+        step1: {
+          title: '一番シンプルなアルゴリズム',
+          text: '左手法は「常に左側の壁に手を触れて進む」というとても単純なルールです。'
+        },
+        step2: {
+          title: 'シミュレーション開始',
+          text: '再生ボタンを押すか、「コマ送り」を使って、左手法の動きを確認してみましょう。'
+        },
+        quiz1: {
+          title: '左手法クイズ',
+          text: '左手法のルールを理解できたかチェック！',
+          question: 'もし左側に壁がなかったら、マウスはどう動くべき？',
+          opt1: '左に曲がる',
+          opt2: '前進する',
+          opt3: '右に曲がる',
+          hint: '「左側の壁に手を触れ続ける」ためにはどうすればいいでしょう？'
+        }
+      }
+    }
   }
 };
