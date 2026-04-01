@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { TutorialStep, Lesson } from '../types/tutorial';
+import type { Lesson } from '../types/tutorial';
 import { translations, type Language } from '../i18n/translations';
 
 interface TutorialCardProps {
@@ -15,7 +15,6 @@ interface TutorialCardProps {
 const TutorialCard: React.FC<TutorialCardProps> = ({ 
   lesson, stepIndex, lang, onNext, onBack, onClose, onJumpToStep 
 }) => {
-  const t = translations[lang];
   const step = lesson.steps[stepIndex];
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
