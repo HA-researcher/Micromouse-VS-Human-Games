@@ -10,9 +10,10 @@ interface MazeRendererProps {
   cellSize?: number;
   onWallToggle?: (x: number, y: number, direction: Direction) => void;
   isSurvivalMode?: boolean;
+  highlightCells?: { x: number; y: number; color?: string }[];
 }
 
-const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, ghost, cellSize = 30, onWallToggle, isSurvivalMode }) => {
+const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, ghost, cellSize = 30, onWallToggle, isSurvivalMode, highlightCells }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -30,6 +31,19 @@ const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, ghost, cellSiz
       // Highlight Goal Area
       ctx.fillStyle = 'rgba(255, 215, 0, 0.4)';
       ctx.fillRect(goalX * cellSize, goalY * cellSize, goalWidth * cellSize, goalHeight * cellSize);
+
+      // Draw Highlighted Cells (Tutorial)
+      if (highlightCells) {
+        highlightCells.forEach(cell => {
+          ctx.fillStyle = cell.color || 'rgba(0, 150, 255, 0.4)';
+          ctx.fillRect(cell.x * cellSize, cell.y * cellSize, cellSize, cellSize);
+          
+          // Optional: Border for highlight
+          ctx.strokeStyle = cell.color ? cell.color.replace('0.4', '0.8') : 'rgba(0, 150, 255, 0.8)';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(cell.x * cellSize + 1, cell.y * cellSize + 1, cellSize - 2, cellSize - 2);
+        });
+      }
 
       // Draw Grid Lines (Subtle)
       ctx.strokeStyle = '#333';
@@ -168,7 +182,7 @@ const MazeRenderer: React.FC<MazeRendererProps> = ({ maze, mouse, ghost, cellSiz
         drawMaze(ctx);
       }
     }
-  }, [maze, mouse, ghost, cellSize, isSurvivalMode]);
+  }, [maze, mouse, ghost, cellSize, isSurvivalMode, highlightCells]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!onWallToggle || !canvasRef.current) return;
