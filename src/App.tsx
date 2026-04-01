@@ -234,24 +234,7 @@ function App() {
     if (next1) setMouse1(next1);
     if (next2) setMouse2(next2);
 
-    // Goal Detection (Universal)
-    const isAtGoal = (m: MouseState) => 
-      m.x >= maze.goalX && m.x < maze.goalX + maze.goalWidth &&
-      m.y >= maze.goalY && m.y < maze.goalY + maze.goalHeight;
-
-    if ((next1 && isAtGoal(next1)) || (next2 && isAtGoal(next2))) {
-      if (isPlayingRef.current) {
-        togglePlay(); // Stop simulation on goal
-        setShowGoalMessage(true);
-      }
-
-      // Campaign Progress (Only if campaign mode)
-      if (isCampaignMode && currentStageId) {
-        const cost = (next1 && isAtGoal(next1)) ? next1.totalCost : (next2 ? next2.totalCost : 0);
-        const newData = saveProgress(currentStageId, cost);
-        setSaveData(newData);
-      }
-    }
+    // Goal Detection (Universal) moved to useEffect below
 
     // Ghost movement
     if (ghostPath && ghostMouseRef.current) {
@@ -321,6 +304,32 @@ function App() {
     }
     setShowGoalMessage(false);
   }, [reset, ghostPath]);
+
+  // Reactive Goal Detection (Handles manual movement and algo)
+  useEffect(() => {
+    if (!maze || showGoalMessage) return;
+
+    const isAtGoal = (m: MouseState) => 
+      m.x >= maze.goalX && m.x < maze.goalX + maze.goalWidth &&
+      m.y >= maze.goalY && m.y < maze.goalY + maze.goalHeight;
+
+    const g1 = isAtGoal(mouse1);
+    const g2 = isAtGoal(mouse2);
+
+    if (g1 || g2) {
+      setShowGoalMessage(true);
+      if (isPlayingRef.current) {
+        togglePlay();
+      }
+
+      // Campaign Progress (Only if campaign mode)
+      if (isCampaignMode && currentStageId) {
+        const cost = g1 ? mouse1.totalCost : mouse2.totalCost;
+        const newData = saveProgress(currentStageId, cost);
+        setSaveData(newData);
+      }
+    }
+  }, [mouse1.x, mouse1.y, mouse2.x, mouse2.y, maze, isCampaignMode, currentStageId, showGoalMessage, togglePlay]);
 
   const handleGenerate = useCallback(() => {
     const newSeed = Math.floor(Math.random() * 10000);
