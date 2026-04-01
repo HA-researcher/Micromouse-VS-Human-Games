@@ -66,9 +66,10 @@ const TutorialCard: React.FC<TutorialCardProps> = ({
                 </button>
               ))}
             </div>
-            {selectedOption !== null && !translations[lang].tutorial?.lefthand?.quiz1?.opt1 && (
-               /* Special hint handling if needed */
-               selectedOption !== null && <p className="quiz-hint">{showAnswer ? '✨ Correct!' : `💡 ${getTranslation(step.quiz.hint)}`}</p>
+            {selectedOption !== null && (
+               <p className="quiz-hint">
+                 {showAnswer ? (lang === 'ja' ? '✨ 正解！' : '✨ Correct!') : `💡 ${getTranslation(step.quiz.hint)}`}
+               </p>
             )}
           </div>
         )}

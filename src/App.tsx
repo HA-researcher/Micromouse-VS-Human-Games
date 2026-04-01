@@ -829,8 +829,6 @@ function App() {
         />
       )}
 
-      {/* Tutorial Start Button in Sidebar/Header area could be added, 
-          but for now let's add it near campaign or floating */}
       <div style={{ position: 'fixed', bottom: '20px', left: '20px', display: 'flex', gap: '10px' }}>
         <button 
           onClick={() => startTutorial('basics')} 
