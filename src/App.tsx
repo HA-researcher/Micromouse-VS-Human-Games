@@ -792,17 +792,16 @@ function App() {
         </div>
 
         <div className="speed-control">
-          <label>{t.speed}: </label>
-          <select 
-            value={speed} 
-            onChange={(e) => setSpeed(Number(e.target.value))}
+          <label>{t.speed} (TPS): </label>
+          <input 
+            type="number" 
+            min={1} 
+            max={100} 
+            value={Math.round(speed)} 
+            onChange={(e) => setSpeed(Math.max(1, Math.min(100, Number(e.target.value))))}
             className="speed-select"
-          >
-            <option value={0.5}>0.5x</option>
-            <option value={1}>1.0x</option>
-            <option value={2}>2.0x</option>
-            <option value={4}>4.0x</option>
-          </select>
+            style={{width: '80px'}}
+          />
         </div>
 
         <div className="seed-info">{t.currentSeed}: {seed}</div>
